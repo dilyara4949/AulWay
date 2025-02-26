@@ -14,7 +14,10 @@ import (
 	fbAuth "firebase.google.com/go/auth"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
+	echoSwagger "github.com/swaggo/echo-swagger"
 	"gorm.io/gorm"
+
+	_ "aulway/docs"
 )
 
 type Router struct {
@@ -55,6 +58,7 @@ func (r *Router) Build() *echo.Echo {
 	e.Use(echoMiddleware.Recover(), timeoutWithConfig, echoMiddleware.Logger())
 
 	e.GET("/health", healthz.CheckHealth())
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	services := e.Group("")
 	services.POST("/signin", auth.FirebaseSignIn(userService, r.fb))
