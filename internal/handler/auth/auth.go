@@ -2,6 +2,7 @@ package auth
 
 import (
 	"aulway/internal/domain"
+	"aulway/internal/handler/auth/model"
 	"aulway/internal/repository/errs"
 	uerrs "aulway/internal/utils/errs"
 	"context"
@@ -26,7 +27,7 @@ type UserService interface {
 	CreateUser(ctx context.Context, email string, uid string) (*domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetUserByFbUid(ctx context.Context, uid string) (*domain.User, error)
-	//UpdateUserRole(ctx context.Context, uid string, role string) error
+	ResetPassword(ctx context.Context, password model.ResetPassword) error
 }
 
 func FirebaseSignIn(userService UserService, firebaseClient *auth.Client) echo.HandlerFunc {
@@ -84,4 +85,26 @@ func AssignRole(authClient *auth.Client, uid string, role string) error {
 	}
 	log.Printf("Role '%s' assigned to user %s", role, uid)
 	return nil
+}
+
+func ResetPasswordHandler(userService UserService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var req model.ResetPassword
+
+		err := c.Bind(&req)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "error at binding request body", ErrDesc: err.Error()})
+		}
+
+		if req.NewPassword == "" || req.OldPassword == "" || req.Email == "" {
+			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: errs.ErrInvalidEmailPassword})
+		}
+
+		err = userService.ResetPassword(c.Request().Context(), req)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Failed to reset password", ErrDesc: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, "reset password succeeded")
+	}
 }

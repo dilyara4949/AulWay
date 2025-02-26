@@ -14,7 +14,6 @@ type Service interface {
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetUserByFbUid(ctx context.Context, uid string) (*domain.User, error)
 	UpdateUser(ctx context.Context, req model.UpdateUserRequest, id string) error
-	//UpdateUserRole(ctx context.Context, uid string, role string) error
 }
 
 func UpdateUserHandler(service Service) echo.HandlerFunc {
