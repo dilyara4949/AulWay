@@ -71,6 +71,7 @@ func (r *Router) Build() *echo.Echo {
 	protected.GET("/route/:routeId", route.GetRouteHandler(routeService, r.c))
 	protected.PUT("/route/:routeId", route.UpdateRouteHandler(routeService, r.c))
 	protected.DELETE("/route/:routeId", route.DeleteRouteHandler(routeService, r.c))
+	protected.GET("/route", route.GetRoutesListHandler(routeService, r.c))
 
 	return e
 }
