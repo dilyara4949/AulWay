@@ -1,0 +1,331 @@
+definitions:
+  domain.Bus:
+    properties:
+      id:
+        type: string
+      number:
+        type: string
+      total_seats:
+        type: integer
+    type: object
+  domain.Route:
+    properties:
+      available_seats:
+        type: integer
+      bus_id:
+        type: string
+      created_at:
+        type: string
+      departure:
+        type: string
+      destination:
+        type: string
+      end_date:
+        type: string
+      id:
+        type: string
+      price:
+        type: integer
+      start_date:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  errs.Err:
+    properties:
+      errDesc:
+        type: string
+      error:
+        type: string
+    type: object
+  model.CreateRequest:
+    properties:
+      number:
+        type: string
+      total_seats:
+        type: integer
+    type: object
+  model.CreateRouteRequest:
+    properties:
+      bus_id:
+        type: string
+      departure:
+        type: string
+      destination:
+        type: string
+      end_date:
+        type: string
+      price:
+        minimum: 0
+        type: integer
+      start_date:
+        type: string
+    required:
+    - bus_id
+    - departure
+    - destination
+    - end_date
+    - price
+    - start_date
+    type: object
+  model.UpdateRouteRequest:
+    properties:
+      bus_id:
+        type: string
+      departure:
+        type: string
+      destination:
+        type: string
+      end_date:
+        type: string
+      price:
+        minimum: 0
+        type: integer
+      start_date:
+        type: string
+    required:
+    - bus_id
+    - departure
+    - destination
+    - end_date
+    - price
+    - start_date
+    type: object
+info:
+  contact: {}
+paths:
+  /bus:
+    post:
+      consumes:
+      - application/json
+      description: Create Bus
+      parameters:
+      - description: Request Body
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/domain.Bus'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      tags:
+      - bus
+  /bus/{busId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a bus by its ID
+      parameters:
+      - description: Bus ID
+        in: path
+        name: busId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/domain.Bus'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: Get Bus
+      tags:
+      - bus
+  /route:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of available routes based on filters
+      parameters:
+      - description: Departure location
+        in: query
+        name: departure
+        required: true
+        type: string
+      - description: Destination location
+        in: query
+        name: destination
+        required: true
+        type: string
+      - description: 'Travel date (format: YYYY-MM-DD)'
+        in: query
+        name: date
+        required: true
+        type: string
+      - description: Number of passengers
+        in: query
+        name: passengers
+        required: true
+        type: integer
+      - description: 'Page number for pagination (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size for pagination (default: 10)'
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of routes
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/domain.Route'
+              type: array
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: Get Routes List
+      tags:
+      - route
+    post:
+      consumes:
+      - application/json
+      description: Create a new bus route
+      parameters:
+      - description: Route creation request
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateRouteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/domain.Route'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: Create Route
+      tags:
+      - route
+  /route/{routeId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a route by its ID
+      parameters:
+      - description: Route ID
+        in: path
+        name: routeId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: Delete Route
+      tags:
+      - route
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a route by its ID
+      parameters:
+      - description: Route ID
+        in: path
+        name: routeId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/domain.Route'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: Get Route
+      tags:
+      - route
+    put:
+      consumes:
+      - application/json
+      description: Update an existing route by its ID
+      parameters:
+      - description: Route ID
+        in: path
+        name: routeId
+        required: true
+        type: string
+      - description: Update Route Request Body
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateRouteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Route updated successfully
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: Update Route
+      tags:
+      - route
+swagger: "2.0"

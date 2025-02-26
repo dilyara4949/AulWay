@@ -21,7 +21,7 @@ type Service interface {
 // @Tags bus
 // @Accept json
 // @Produce json
-// @Param requestBody body model.CreateRequest true
+// @Param requestBody body model.CreateRequest true "Request Body"
 // @Success 200 {object} domain.Bus  "Success"
 // @Failure 400 {object} errs.Err
 // @Failure 500 {object} errs.Err
@@ -49,6 +49,17 @@ func CreateBusHandler(busService Service, cfg config.Config) echo.HandlerFunc {
 	}
 }
 
+// GetBusHandler
+// @Summary Get Bus
+// @Description Retrieve a bus by its ID
+// @Tags bus
+// @Accept json
+// @Produce json
+// @Param busId path string true "Bus ID"
+// @Success 200 {object} domain.Bus "Success"
+// @Failure 400 {object} errs.Err "Bad Request"
+// @Failure 500 {object} errs.Err "Internal Server Error"
+// @Router /bus/{busId} [get]
 func GetBusHandler(busService Service, cfg config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		busId := c.Param("busId")
