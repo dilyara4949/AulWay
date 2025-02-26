@@ -1,22 +1,25 @@
 package user
 
 import (
+	"aulway/internal/domain"
+	"aulway/internal/repository/errs"
 	"context"
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-type UserRepository struct {
+type Repository struct {
 	db *gorm.DB
 }
 
-func NewUserRepository(db *gorm.DB) UserRepository {
-	return UserRepository{db: db}
+func NewRepository(db *gorm.DB) Repository {
+	return Repository{db: db}
 }
 
-func (repo *UserRepository) Create(ctx context.Context, user *domain.User) error {
+func (repo *Repository) Create(ctx context.Context, user *domain.User) error {
 	if err := repo.db.WithContext(ctx).Create(&user).Error; err != nil {
 		return fmt.Errorf("create user error: %w", err)
 	}
@@ -24,12 +27,12 @@ func (repo *UserRepository) Create(ctx context.Context, user *domain.User) error
 	return nil
 }
 
-func (repo *UserRepository) Get(ctx context.Context, id uuid.UUID) (domain.User, error) {
+func (repo *Repository) Get(ctx context.Context, id uuid.UUID) (domain.User, error) {
 	var user domain.User
 
 	if err := repo.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return domain.User{}, errs.ErrUserNotFound
+			return domain.User{}, errs.ErrRecordNotFound
 		}
 
 		return domain.User{}, fmt.Errorf("get user error: %w", err)
@@ -38,28 +41,29 @@ func (repo *UserRepository) Get(ctx context.Context, id uuid.UUID) (domain.User,
 	return user, nil
 }
 
-func (repo *UserRepository) Update(ctx context.Context, user domain.User) (domain.User, error) {
-	if err := repo.db.WithContext(ctx).Save(&user).Error; err != nil {
-		return domain.User{}, fmt.Errorf("update user error: %w", err)
+func (repo *Repository) Update(ctx context.Context, updates map[string]interface{}, id string) error {
+	err := repo.db.WithContext(ctx).Model(&domain.User{}).Where("id = ?", id).Updates(updates).Error
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
 	}
 
-	return user, nil
+	return nil
 }
 
-func (repo *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (repo *Repository) Delete(ctx context.Context, id uuid.UUID) error {
 	res := repo.db.WithContext(ctx).Delete(&domain.User{}, id)
 	if res.Error != nil {
 		return fmt.Errorf("delete user error: %w", res.Error)
 	}
 
 	if res.RowsAffected == 0 {
-		return errs.ErrUserNotFound
+		return errs.ErrRecordNotFound
 	}
 
 	return nil
 }
 
-func (repo *UserRepository) GetUsers(ctx context.Context, page, pageSize int) ([]domain.User, error) {
+func (repo *Repository) GetUsers(ctx context.Context, page, pageSize int) ([]domain.User, error) {
 	var users []domain.User
 
 	offset := (page - 1) * pageSize
@@ -71,7 +75,7 @@ func (repo *UserRepository) GetUsers(ctx context.Context, page, pageSize int) ([
 	return users, nil
 }
 
-func (repo *UserRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, newPassword string, requirePasswordReset bool) error {
+func (repo *Repository) UpdatePassword(ctx context.Context, userID uuid.UUID, newPassword string, requirePasswordReset bool) error {
 	return repo.db.WithContext(ctx).
 		Model(&domain.User{ID: userID}).
 		Updates(map[string]interface{}{
@@ -80,15 +84,29 @@ func (repo *UserRepository) UpdatePassword(ctx context.Context, userID uuid.UUID
 		}).Error
 }
 
-func (repo *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (repo *Repository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
 
 	if err := repo.db.WithContext(ctx).First(&user, "email = ?", email).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errs.ErrUserNotFound
+			return nil, errs.ErrRecordNotFound
 		}
 
 		return nil, fmt.Errorf("get user by email error: %w", err)
+	}
+
+	return &user, nil
+}
+
+func (repo *Repository) GetUserByFbUid(ctx context.Context, uid string) (*domain.User, error) {
+	var user domain.User
+
+	if err := repo.db.WithContext(ctx).First(&user, "firebase_uid = ?", uid).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errs.ErrRecordNotFound
+		}
+
+		return nil, fmt.Errorf("get user by fbUid error: %w", err)
 	}
 
 	return &user, nil
