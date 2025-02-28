@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
@@ -23,6 +24,7 @@ func NewRepository(db *gorm.DB) Repository {
 func (repo *Repository) Create(ctx context.Context, user *domain.User) error {
 	if err := repo.db.WithContext(ctx).Create(&user).Error; err != nil {
 		if strings.Contains(err.Error(), "duplicate") {
+			slog.Debug(err.Error())
 			return errs.EmailAlreadyExists
 		}
 		return fmt.Errorf("create user error: %w", err)

@@ -87,7 +87,6 @@ CREATE TABLE settings (
 );
 
 CREATE UNIQUE INDEX idx_users_email ON users(email);
-CREATE UNIQUE INDEX idx_users_phone ON users(phone);
 CREATE INDEX idx_tickets_user ON tickets(user_id);
 CREATE INDEX idx_routes_departure_destination ON routes(departure, destination);
 CREATE UNIQUE INDEX idx_payments_transaction ON payments(transaction_id);

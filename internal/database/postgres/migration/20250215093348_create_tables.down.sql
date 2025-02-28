@@ -1,5 +1,4 @@
 DROP INDEX IF EXISTS idx_users_email;
-DROP INDEX IF EXISTS idx_users_phone;
 DROP INDEX IF EXISTS idx_tickets_user;
 DROP INDEX IF EXISTS idx_routes_departure;
 DROP INDEX IF EXISTS idx_routes_destination;
