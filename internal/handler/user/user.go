@@ -33,8 +33,7 @@ type Service interface {
 // @Success 200 {object} nil "User updated successfully"
 // @Failure 400 {object} errs.Err "Invalid request body"
 // @Failure 500 {object} errs.Err "Internal server error"
-// @Router /api/users/{userId} [put]
-// @Router /admin/users/{userId} [put]
+// @Router /users/{userId} [put]
 func UpdateUserHandler(service Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		userId := c.Param("userId")
@@ -64,8 +63,7 @@ func UpdateUserHandler(service Service) echo.HandlerFunc {
 // @Security BearerAuth
 // @Success 200 {object} domain.User "User details retrieved successfully"
 // @Failure 500 {object} errs.Err "Internal server error"
-// @Router /api/users/{userId} [get]
-// @Router /admin/users/{userId} [get]
+// @Router /users/{userId} [get]
 func GetUserByIdHandler(service Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		userId := c.Param("userId")
@@ -90,7 +88,7 @@ func GetUserByIdHandler(service Service) echo.HandlerFunc {
 // @Param page_size query int false "Number of users per page" default(10) minimum(1) maximum(100)
 // @Success 200 {array} domain.User "List of users"
 // @Failure 500 {object} errs.Err "Failed to retrieve users"
-// @Router /admin/users [get]
+// @Router /users [get]
 func GetUsersList(service Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		page, pageSize := pagination.GetPageInfo(c)
