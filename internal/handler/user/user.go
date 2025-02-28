@@ -12,13 +12,14 @@ import (
 )
 
 type Service interface {
-	CreateUser(ctx context.Context, email string, uid string) (*domain.User, error)
+	CreateUser(ctx context.Context, request auth.SignupRequest) (*domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetUserByFbUid(ctx context.Context, uid string) (*domain.User, error)
 	GetUserById(ctx context.Context, uid string) (*domain.User, error)
 	UpdateUser(ctx context.Context, req model.UpdateUserRequest, id string) error
 	ResetPassword(ctx context.Context, password auth.ResetPassword) error
 	GetUsers(ctx context.Context, page, pageSize int) ([]domain.User, error)
+	ValidateUser(ctx context.Context, signin auth.SigninRequest) (*domain.User, error)
 }
 
 // UpdateUserHandler updates user information
@@ -34,7 +35,6 @@ type Service interface {
 // @Failure 400 {object} errs.Err "Invalid request body"
 // @Failure 500 {object} errs.Err "Internal server error"
 // @Router /api/users/{userId} [put]
-// @Router /admin/users/{userId} [put]
 func UpdateUserHandler(service Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		userId := c.Param("userId")
@@ -65,7 +65,6 @@ func UpdateUserHandler(service Service) echo.HandlerFunc {
 // @Success 200 {object} domain.User "User details retrieved successfully"
 // @Failure 500 {object} errs.Err "Internal server error"
 // @Router /api/users/{userId} [get]
-// @Router /admin/users/{userId} [get]
 func GetUserByIdHandler(service Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		userId := c.Param("userId")
@@ -90,7 +89,7 @@ func GetUserByIdHandler(service Service) echo.HandlerFunc {
 // @Param page_size query int false "Number of users per page" default(10) minimum(1) maximum(100)
 // @Success 200 {array} domain.User "List of users"
 // @Failure 500 {object} errs.Err "Failed to retrieve users"
-// @Router /admin/users [get]
+// @Router /api/users [get]
 func GetUsersList(service Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		page, pageSize := pagination.GetPageInfo(c)

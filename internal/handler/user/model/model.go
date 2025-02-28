@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"regexp"
+	"time"
 )
 
 type UpdateUserRequest struct {
@@ -10,6 +11,17 @@ type UpdateUserRequest struct {
 	LastName  *string `json:"lastname,omitempty"`
 	Email     *string `json:"email,omitempty"`
 	Phone     *string `json:"phone,omitempty"`
+}
+
+type UserResponse struct {
+	ID        string    `json:"id"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	Firstname string    `json:"firstname"`
+	Lastname  string    `json:"lastname"`
+	Phone     string    `json:"phone"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (UpdateUserRequest) ValidateEmail(email string) error {

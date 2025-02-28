@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -21,6 +22,9 @@ func NewRepository(db *gorm.DB) Repository {
 
 func (repo *Repository) Create(ctx context.Context, user *domain.User) error {
 	if err := repo.db.WithContext(ctx).Create(&user).Error; err != nil {
+		if strings.Contains(err.Error(), "duplicate") {
+			return errs.EmailAlreadyExists
+		}
 		return fmt.Errorf("create user error: %w", err)
 	}
 
@@ -30,7 +34,7 @@ func (repo *Repository) Create(ctx context.Context, user *domain.User) error {
 func (repo *Repository) Get(ctx context.Context, id string) (*domain.User, error) {
 	var user *domain.User
 
-	if err := repo.db.WithContext(ctx).First(user, "id = ?", id).Error; err != nil {
+	if err := repo.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.ErrRecordNotFound
 		}

@@ -2,12 +2,13 @@ package role
 
 //import (
 //	"aulway/internal/handler/auth"
+//	"aulway/internal/handler/user"
 //	fbAuth "firebase.google.com/go/auth"
 //	"github.com/labstack/echo/v4"
 //	"net/http"
 //)
 //
-//func AssignUserRole(authClient *fbAuth.Client, userService *auth.UserService) echo.HandlerFunc {
+//func AssignUserRole(authClient *fbAuth.Client, userService *user.Service) echo.HandlerFunc {
 //	return func(c echo.Context) error {
 //		var req struct {
 //			UID  string `json:"uid"`

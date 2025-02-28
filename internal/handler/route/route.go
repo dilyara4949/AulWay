@@ -33,7 +33,7 @@ type Service interface {
 // @Success 200 {object} domain.Route "Success"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /routes [post]
+// @Router /api/routes [post]
 func CreateRouteHandler(routeService Service, busService busServ.Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request model.CreateRouteRequest
@@ -71,7 +71,7 @@ func CreateRouteHandler(routeService Service, busService busServ.Service, _ conf
 // @Success 200 {object} domain.Route "Success"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /routes/{routeId} [get]
+// @Router /api/routes/{routeId} [get]
 func GetRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		routeId := c.Param("routeId")
@@ -96,7 +96,7 @@ func GetRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 // @Success 200 {string} string "Success"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /routes/{routeId} [delete]
+// @Router /api/routes/{routeId} [delete]
 func DeleteRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		routeId := c.Param("routeId")
@@ -122,7 +122,7 @@ func DeleteRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc 
 // @Success 200 {object} string "Route updated successfully"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /routes/{routeId} [put]
+// @Router /api/routes/{routeId} [put]
 func UpdateRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		routeId := c.Param("routeId")
@@ -157,7 +157,6 @@ func UpdateRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc 
 // @Success 200 {array} []domain.Route "List of routes"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /admin/routes [get]
 // @Router /api/routes [get]
 func GetRoutesListHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {

@@ -26,7 +26,7 @@ type Service interface {
 // @Success 200 {object} domain.Bus  "Success"
 // @Failure 400 {object} errs.Err
 // @Failure 500 {object} errs.Err
-// @Router /buses [post]
+// @Router /api/buses [post]
 func CreateBusHandler(busService Service, cfg config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		//log
@@ -61,7 +61,7 @@ func CreateBusHandler(busService Service, cfg config.Config) echo.HandlerFunc {
 // @Success 200 {object} domain.Bus "Success"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /buses/{busId} [get]
+// @Router /api/buses/{busId} [get]
 func GetBusHandler(busService Service, cfg config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		busId := c.Param("busId")

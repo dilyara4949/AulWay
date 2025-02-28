@@ -1,7 +1,7 @@
 CREATE TABLE users (
                        id VARCHAR(50) PRIMARY KEY,
                        email VARCHAR(255) UNIQUE,
-                       phone VARCHAR(20) UNIQUE NOT NULL,
+                       phone VARCHAR(20)  NOT NULL,
                        password TEXT NOT NULL,
                        first_name VARCHAR(100) NULL,
                        last_name VARCHAR(100) NULL,
