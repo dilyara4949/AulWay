@@ -27,15 +27,15 @@ func (repo *Repository) Create(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
-func (repo *Repository) Get(ctx context.Context, id uuid.UUID) (domain.User, error) {
-	var user domain.User
+func (repo *Repository) Get(ctx context.Context, id string) (*domain.User, error) {
+	var user *domain.User
 
-	if err := repo.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
+	if err := repo.db.WithContext(ctx).First(user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return domain.User{}, errs.ErrRecordNotFound
+			return nil, errs.ErrRecordNotFound
 		}
 
-		return domain.User{}, fmt.Errorf("get user error: %w", err)
+		return nil, fmt.Errorf("get user error: %w", err)
 	}
 
 	return user, nil
@@ -75,7 +75,7 @@ func (repo *Repository) GetUsers(ctx context.Context, page, pageSize int) ([]dom
 	return users, nil
 }
 
-func (repo *Repository) UpdatePassword(ctx context.Context, userID uuid.UUID, newPassword string, requirePasswordReset bool) error {
+func (repo *Repository) UpdatePassword(ctx context.Context, userID string, newPassword string, requirePasswordReset bool) error {
 	return repo.db.WithContext(ctx).
 		Model(&domain.User{ID: userID}).
 		Updates(map[string]interface{}{

@@ -10,6 +10,7 @@ import (
 	routeRepostory "aulway/internal/repository/route"
 	userRepository "aulway/internal/repository/user"
 	"aulway/internal/service"
+	middleware "aulway/internal/transport/middlware"
 	"aulway/internal/utils/config"
 	fbAuth "firebase.google.com/go/auth"
 	"github.com/labstack/echo/v4"
@@ -18,6 +19,10 @@ import (
 	"gorm.io/gorm"
 
 	_ "aulway/docs"
+)
+
+const (
+	AdminRole = "admin"
 )
 
 type Router struct {
@@ -60,22 +65,51 @@ func (r *Router) Build() *echo.Echo {
 	e.GET("/health", healthz.CheckHealth())
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	services := e.Group("")
-	services.POST("/signin", auth.FirebaseSignIn(userService, r.fb))
+	e.POST("/signin", auth.FirebaseSignIn(userService, r.fb))
 
-	//firebaseAuthMiddleware := middleware.FirebaseAuthMiddleware(r.fb)
-	protected := services.Group("")
+	// ------- user APIs
 
-	protected.PUT("/user/:userId", user.UpdateUserHandler(userService))
+	publicProtected := e.Group("/api", middleware.FirebaseAuthMiddleware(r.fb))
 
-	protected.POST("/bus", bus.CreateBusHandler(busService, r.c))
-	protected.GET("/bus/:busId", bus.GetBusHandler(busService, r.c))
+	publicProtected.PUT("/users/:userId", user.UpdateUserHandler(userService))
+	publicProtected.GET("/users/:userId", user.GetUserByIdHandler(userService))
 
-	protected.POST("/route", route.CreateRouteHandler(routeService, busService, r.c))
-	protected.GET("/route/:routeId", route.GetRouteHandler(routeService, r.c))
-	protected.PUT("/route/:routeId", route.UpdateRouteHandler(routeService, r.c))
-	protected.DELETE("/route/:routeId", route.DeleteRouteHandler(routeService, r.c))
-	protected.GET("/route", route.GetRoutesListHandler(routeService, r.c))
+	publicProtected.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))
+
+	publicProtected.GET("/routes/:routeId", route.GetRouteHandler(routeService, r.c))
+	publicProtected.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
+
+	// ----- admin APIs
+
+	adminProtected := e.Group("/admin", middleware.AccessCheckMiddleware(AdminRole))
+
+	adminProtected.PUT("/users/:userId", user.UpdateUserHandler(userService))
+	adminProtected.GET("/users/userId", user.GetUserByIdHandler(userService))
+	adminProtected.GET("/users", user.GetUsersList(userService))
+
+	adminProtected.POST("/buses", bus.CreateBusHandler(busService, r.c))
+	adminProtected.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))
+
+	adminProtected.POST("/routes", route.CreateRouteHandler(routeService, busService, r.c))
+	adminProtected.GET("/routes/:routeId", route.GetRouteHandler(routeService, r.c))
+	adminProtected.PUT("/routes/:routeId", route.UpdateRouteHandler(routeService, r.c))
+	adminProtected.DELETE("/routes/:routeId", route.DeleteRouteHandler(routeService, r.c))
+	adminProtected.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
 
 	return e
 }
+
+// ----- test APIs
+
+//e.PUT("/users/:userId", user.UpdateUserHandler(userService))
+//e.GET("/users/userId", user.GetUserByIdHandler(userService))
+//adminProtected.GET("/users", user.GetUsersList(userService))
+//
+//e.POST("/buses", bus.CreateBusHandler(busService, r.c))
+//e.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))
+//
+//e.POST("/routes", route.CreateRouteHandler(routeService, busService, r.c))
+//e.GET("/routes/:routeId", route.GetRouteHandler(routeService, r.c))
+//e.PUT("/routes/:routeId", route.UpdateRouteHandler(routeService, r.c))
+//e.DELETE("/routes/:routeId", route.DeleteRouteHandler(routeService, r.c))
+//e.GET("/routes", route.GetRoutesListHandler(routeService, r.c))

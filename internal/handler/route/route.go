@@ -28,11 +28,12 @@ type Service interface {
 // @Tags route
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param requestBody body model.CreateRouteRequest true "Route creation request"
 // @Success 200 {object} domain.Route "Success"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /route [post]
+// @Router /routes [post]
 func CreateRouteHandler(routeService Service, busService busServ.Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request model.CreateRouteRequest
@@ -65,11 +66,12 @@ func CreateRouteHandler(routeService Service, busService busServ.Service, _ conf
 // @Tags route
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param routeId path string true "Route ID"
 // @Success 200 {object} domain.Route "Success"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /route/{routeId} [get]
+// @Router /routes/{routeId} [get]
 func GetRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		routeId := c.Param("routeId")
@@ -89,11 +91,12 @@ func GetRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 // @Tags route
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param routeId path string true "Route ID"
 // @Success 200 {string} string "Success"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /route/{routeId} [delete]
+// @Router /routes/{routeId} [delete]
 func DeleteRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		routeId := c.Param("routeId")
@@ -113,12 +116,13 @@ func DeleteRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc 
 // @Tags route
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param routeId path string true "Route ID"
 // @Param requestBody body model.UpdateRouteRequest true "Update Route Request Body"
 // @Success 200 {object} string "Route updated successfully"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /route/{routeId} [put]
+// @Router /routes/{routeId} [put]
 func UpdateRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		routeId := c.Param("routeId")
@@ -143,6 +147,7 @@ func UpdateRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc 
 // @Tags route
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param departure query string true "Departure location"
 // @Param destination query string true "Destination location"
 // @Param date query string true "Travel date (format: YYYY-MM-DD)"
@@ -152,7 +157,8 @@ func UpdateRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc 
 // @Success 200 {array} []domain.Route "List of routes"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /route [get]
+// @Router /admin/routes [get]
+// @Router /api/routes [get]
 func GetRoutesListHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		departure := c.QueryParam("departure")

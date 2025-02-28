@@ -7,8 +7,13 @@ type SignupRq struct {
 	Password string `json:"password"`
 }
 
+type SigninRq struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type ResetPassword struct {
-	Phone       string `json:"phone"`
+	Email       string `json:"email"`
 	OldPassword string `json:"old_password"`
 	NewPassword string `json:"new_password"`
 }
