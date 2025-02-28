@@ -22,6 +22,18 @@ type Service interface {
 	GetRoutesList(ctx context.Context, departure, destination string, date time.Time, passengers, page, pageSize int) ([]domain.Route, int, error)
 }
 
+// CreateRouteHandler
+// @Summary Create Route
+// @Description Create a new bus route
+// @Tags route
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param requestBody body model.CreateRouteRequest true "Route creation request"
+// @Success 200 {object} domain.Route "Success"
+// @Failure 400 {object} errs.Err "Bad Request"
+// @Failure 500 {object} errs.Err "Internal Server Error"
+// @Router /routes [post]
 func CreateRouteHandler(routeService Service, busService busServ.Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request model.CreateRouteRequest
@@ -48,6 +60,18 @@ func CreateRouteHandler(routeService Service, busService busServ.Service, _ conf
 	}
 }
 
+// GetRouteHandler
+// @Summary Get Route
+// @Description Retrieve a route by its ID
+// @Tags route
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param routeId path string true "Route ID"
+// @Success 200 {object} domain.Route "Success"
+// @Failure 400 {object} errs.Err "Bad Request"
+// @Failure 500 {object} errs.Err "Internal Server Error"
+// @Router /routes/{routeId} [get]
 func GetRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		routeId := c.Param("routeId")
@@ -61,6 +85,18 @@ func GetRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	}
 }
 
+// DeleteRouteHandler
+// @Summary Delete Route
+// @Description Delete a route by its ID
+// @Tags route
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param routeId path string true "Route ID"
+// @Success 200 {string} string "Success"
+// @Failure 400 {object} errs.Err "Bad Request"
+// @Failure 500 {object} errs.Err "Internal Server Error"
+// @Router /routes/{routeId} [delete]
 func DeleteRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		routeId := c.Param("routeId")
@@ -74,6 +110,19 @@ func DeleteRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc 
 	}
 }
 
+// UpdateRouteHandler
+// @Summary Update Route
+// @Description Update an existing route by its ID
+// @Tags route
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param routeId path string true "Route ID"
+// @Param requestBody body model.UpdateRouteRequest true "Update Route Request Body"
+// @Success 200 {object} string "Route updated successfully"
+// @Failure 400 {object} errs.Err "Bad Request"
+// @Failure 500 {object} errs.Err "Internal Server Error"
+// @Router /routes/{routeId} [put]
 func UpdateRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		routeId := c.Param("routeId")
@@ -92,6 +141,24 @@ func UpdateRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc 
 	}
 }
 
+// GetRoutesListHandler
+// @Summary Get Routes List
+// @Description Retrieve a list of available routes based on filters
+// @Tags route
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param departure query string true "Departure location"
+// @Param destination query string true "Destination location"
+// @Param date query string true "Travel date (format: YYYY-MM-DD)"
+// @Param passengers query int true "Number of passengers"
+// @Param page query int false "Page number for pagination (default: 1)"
+// @Param pageSize query int false "Page size for pagination (default: 30)"
+// @Success 200 {array} []domain.Route "List of routes"
+// @Failure 400 {object} errs.Err "Bad Request"
+// @Failure 500 {object} errs.Err "Internal Server Error"
+// @Router /admin/routes [get]
+// @Router /api/routes [get]
 func GetRoutesListHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		departure := c.QueryParam("departure")

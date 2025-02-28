@@ -16,6 +16,14 @@ import (
 	"time"
 )
 
+// @title Aulway API
+// @version 1.0
+// @description API documentation for Aulway.
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Use "Bearer {your-firebase-token}"
+// @BasePath /
 func main() {
 	cfg, err := config.NewConfig()
 	if err != nil {
