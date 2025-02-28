@@ -67,12 +67,25 @@ func (r *Router) Build() *echo.Echo {
 
 	e.POST("/auth/firebase-signin", auth.FirebaseSignIn(userService, r.fb))
 
+	e.PUT("/users/:userId", user.UpdateUserHandler(userService))
+	e.GET("/users/:userId", user.GetUserByIdHandler(userService))
+	e.GET("/users", user.GetUsersList(userService))
+
+	e.POST("/buses", bus.CreateBusHandler(busService, r.c))
+	e.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))
+
+	e.POST("/routes", route.CreateRouteHandler(routeService, busService, r.c))
+	e.GET("/routes/:routeId", route.GetRouteHandler(routeService, r.c))
+	e.PUT("/routes/:routeId", route.UpdateRouteHandler(routeService, r.c))
+	e.DELETE("/routes/:routeId", route.DeleteRouteHandler(routeService, r.c))
+	e.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
+
 	// ------- user APIs
 	//
-	//publicProtected := e.Group("/api", middleware.FirebaseAuthMiddleware(r.fb))
+	publicProtected := e.Group("/api", middleware.FirebaseAuthMiddleware(r.fb))
 	//
-	//publicProtected.PUT("/users/:userId", user.UpdateUserHandler(userService))
-	//publicProtected.GET("/users/:userId", user.GetUserByIdHandler(userService))
+	publicProtected.PUT("/users/:userId", user.UpdateUserHandler(userService))
+	publicProtected.GET("/users/:userId", user.GetUserByIdHandler(userService))
 	//
 	//publicProtected.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))
 	//
@@ -95,19 +108,6 @@ func (r *Router) Build() *echo.Echo {
 	//adminProtected.PUT("/routes/:routeId", route.UpdateRouteHandler(routeService, r.c))
 	//adminProtected.DELETE("/routes/:routeId", route.DeleteRouteHandler(routeService, r.c))
 	//adminProtected.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
-
-	e.PUT("/users/:userId", user.UpdateUserHandler(userService))
-	e.GET("/users/:userId", user.GetUserByIdHandler(userService))
-	e.GET("/users", user.GetUsersList(userService), middleware.FirebaseAuthMiddleware(r.fb))
-
-	e.POST("/buses", bus.CreateBusHandler(busService, r.c))
-	e.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))
-
-	e.POST("/routes", route.CreateRouteHandler(routeService, busService, r.c))
-	e.GET("/routes/:routeId", route.GetRouteHandler(routeService, r.c))
-	e.PUT("/routes/:routeId", route.UpdateRouteHandler(routeService, r.c))
-	e.DELETE("/routes/:routeId", route.DeleteRouteHandler(routeService, r.c))
-	e.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
 
 	return e
 }

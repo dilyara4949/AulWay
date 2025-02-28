@@ -191,6 +191,61 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/users/{userId}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates user information based on the given user ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users public"
+                ],
+                "summary": "Update user details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "User update request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UpdateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User updated successfully"
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/firebase-signin": {
             "post": {
                 "description": "Verifies the Firebase ID token, retrieves or creates the user, and assigns roles if needed.",
@@ -661,7 +716,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "users"
+                    "users public"
                 ],
                 "summary": "Update user details",
                 "parameters": [

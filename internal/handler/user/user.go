@@ -24,7 +24,7 @@ type Service interface {
 // UpdateUserHandler updates user information
 // @Summary Update user details
 // @Description Updates user information based on the given user ID
-// @Tags users
+// @Tags users public
 // @Accept json
 // @Produce json
 // @Param userId path string true "User ID"
@@ -34,6 +34,7 @@ type Service interface {
 // @Failure 400 {object} errs.Err "Invalid request body"
 // @Failure 500 {object} errs.Err "Internal server error"
 // @Router /users/{userId} [put]
+// @Router /api/users/{userId} [put]
 func UpdateUserHandler(service Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		userId := c.Param("userId")

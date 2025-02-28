@@ -247,6 +247,41 @@ paths:
       summary: Get Routes List
       tags:
       - route
+  /api/users/{userId}:
+    put:
+      consumes:
+      - application/json
+      description: Updates user information based on the given user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: User update request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User updated successfully
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      security:
+      - BearerAuth: []
+      summary: Update user details
+      tags:
+      - users public
   /auth/firebase-signin:
     post:
       consumes:
@@ -573,7 +608,7 @@ paths:
       - BearerAuth: []
       summary: Update user details
       tags:
-      - users
+      - users public
 securityDefinitions:
   BearerAuth:
     description: Use "Bearer {your-firebase-token}"

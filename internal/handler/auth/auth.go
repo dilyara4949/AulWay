@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"aulway/internal/handler/auth/model"
 	"aulway/internal/handler/user"
 	"aulway/internal/repository/errs"
 	uerrs "aulway/internal/utils/errs"
@@ -59,7 +58,7 @@ func FirebaseSignIn(userService user.Service, firebaseClient *auth.Client) echo.
 			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "Bad Request", ErrDesc: "Email is required"})
 		}
 
-		user, err := userService.GetUserByFbUid(c.Request().Context(), fbUid)
+		usr, err := userService.GetUserByFbUid(c.Request().Context(), fbUid)
 		if err != nil {
 			if errors.Is(err, errs.ErrRecordNotFound) {
 				//if emailVerified, ok := token.Claims["email_verified"].(bool); !ok || !emailVerified {
@@ -70,7 +69,7 @@ func FirebaseSignIn(userService user.Service, firebaseClient *auth.Client) echo.
 					return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Internal Server Error", ErrDesc: "Failed to assign role"})
 				}
 
-				user, err = userService.CreateUser(c.Request().Context(), email, fbUid)
+				usr, err = userService.CreateUser(c.Request().Context(), email, fbUid)
 				if err != nil {
 					return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Internal Server Error", ErrDesc: "Error creating user"})
 				}
@@ -79,7 +78,7 @@ func FirebaseSignIn(userService user.Service, firebaseClient *auth.Client) echo.
 			}
 		}
 
-		return c.JSON(http.StatusOK, user)
+		return c.JSON(http.StatusOK, usr)
 	}
 }
 
@@ -96,24 +95,24 @@ func AssignRole(authClient *auth.Client, uid string, role string) error {
 	return nil
 }
 
-func ResetPasswordHandler(userService user.Service) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		var req model.ResetPassword
-
-		err := c.Bind(&req)
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "error at binding request body", ErrDesc: err.Error()})
-		}
-
-		if req.NewPassword == "" || req.OldPassword == "" || req.Email == "" {
-			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: errs.ErrInvalidEmailPassword})
-		}
-
-		err = userService.ResetPassword(c.Request().Context(), req)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Failed to reset password", ErrDesc: err.Error()})
-		}
-
-		return c.JSON(http.StatusOK, "reset password succeeded")
-	}
-}
+//func ResetPasswordHandler(userService user.Service) echo.HandlerFunc {
+//	return func(c echo.Context) error {
+//		var req model.ResetPassword
+//
+//		err := c.Bind(&req)
+//		if err != nil {
+//			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "error at binding request body", ErrDesc: err.Error()})
+//		}
+//
+//		if req.NewPassword == "" || req.OldPassword == "" || req.Email == "" {
+//			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: errs.ErrInvalidEmailPassword})
+//		}
+//
+//		err = userService.ResetPassword(c.Request().Context(), req)
+//		if err != nil {
+//			return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Failed to reset password", ErrDesc: err.Error()})
+//		}
+//
+//		return c.JSON(http.StatusOK, "reset password succeeded")
+//	}
+//}
