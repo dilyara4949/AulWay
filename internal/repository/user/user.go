@@ -30,7 +30,7 @@ func (repo *Repository) Create(ctx context.Context, user *domain.User) error {
 func (repo *Repository) Get(ctx context.Context, id string) (*domain.User, error) {
 	var user *domain.User
 
-	if err := repo.db.WithContext(ctx).First(user, "id = ?", id).Error; err != nil {
+	if err := repo.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errs.ErrRecordNotFound
 		}
