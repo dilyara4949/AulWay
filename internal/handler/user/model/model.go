@@ -8,7 +8,6 @@ import (
 type UpdateUserRequest struct {
 	FirstName *string `json:"firstname,omitempty"`
 	LastName  *string `json:"lastname,omitempty"`
-	Email     *string `json:"email,omitempty"`
 	Phone     *string `json:"phone,omitempty"`
 }
 

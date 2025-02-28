@@ -63,14 +63,6 @@ func (service *User) UpdateUser(ctx context.Context, req model.UpdateUserRequest
 	if req.LastName != nil {
 		updates["last_name"] = *req.LastName
 	}
-	if req.Email != nil {
-		if err := req.ValidateEmail(*req.Email); err != nil {
-			return err
-		}
-
-		updates["email"] = *req.Email
-
-	}
 	if req.Phone != nil {
 		updates["phone"] = *req.Phone
 	}
