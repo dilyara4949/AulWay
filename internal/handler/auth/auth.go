@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"aulway/internal/domain"
 	"aulway/internal/handler/auth/model"
+	"aulway/internal/handler/user"
 	"aulway/internal/repository/errs"
 	uerrs "aulway/internal/utils/errs"
 	"context"
@@ -23,54 +23,60 @@ type Service interface {
 	VerifyFirebaseToken(client *auth.Client, idToken string) (*auth.Token, error)
 }
 
-type UserService interface {
-	CreateUser(ctx context.Context, email string, uid string) (*domain.User, error)
-	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
-	GetUserByFbUid(ctx context.Context, uid string) (*domain.User, error)
-	ResetPassword(ctx context.Context, password model.ResetPassword) error
-}
+//type UserService interface {
+//	CreateUser(ctx context.Context, email string, uid string) (*domain.User, error)
+//	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
+//	GetUserByFbUid(ctx context.Context, uid string) (*domain.User, error)
+//	ResetPassword(ctx context.Context, password model.ResetPassword) error
+//}
 
-func FirebaseSignIn(userService UserService, firebaseClient *auth.Client) echo.HandlerFunc {
+func FirebaseSignIn(userService user.Service, firebaseClient *auth.Client) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		authHeader := c.Request().Header.Get("Authorization")
-		if authHeader == "" {
-			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing Firebase token"})
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			return c.JSON(http.StatusUnauthorized, uerrs.Err{Err: "Unauthorized", ErrDesc: "Missing or invalid Authorization header"})
 		}
 
 		fbToken := strings.TrimPrefix(authHeader, "Bearer ")
 		if fbToken == "" {
-			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid Authorization header"})
+			return c.JSON(http.StatusUnauthorized, uerrs.Err{Err: "Unauthorized", ErrDesc: "Firebase token is missing"})
 		}
 
-		token, err := firebaseClient.VerifyIDToken(context.Background(), fbToken)
+		token, err := firebaseClient.VerifyIDToken(c.Request().Context(), fbToken)
 		if err != nil {
-			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token"})
+			return c.JSON(http.StatusUnauthorized, uerrs.Err{Err: "Unauthorized", ErrDesc: "Invalid Firebase token"})
 		}
 
 		fbUid := token.UID
 		email, ok := token.Claims["email"].(string)
 		if !ok || email == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Email is required"})
+			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "Bad Request", ErrDesc: "Email is required"})
 		}
 
 		user, err := userService.GetUserByFbUid(c.Request().Context(), fbUid)
 		if err != nil {
 			if errors.Is(err, errs.ErrRecordNotFound) {
-				err = AssignRole(firebaseClient, fbUid, "user")
-				if err != nil {
-					return echo.NewHTTPError(http.StatusInternalServerError, "failed to assign role")
+				if emailVerified, ok := token.Claims["email_verified"].(bool); !ok || !emailVerified {
+					return c.JSON(http.StatusForbidden, uerrs.Err{Err: "Forbidden", ErrDesc: "Email must be verified"})
+				}
+
+				if err := AssignRole(firebaseClient, fbUid, UserRole); err != nil {
+					return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Internal Server Error", ErrDesc: "Failed to assign role"})
 				}
 
 				user, err = userService.CreateUser(c.Request().Context(), email, fbUid)
 				if err != nil {
-					return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "Error creating user", ErrDesc: err.Error()})
+					return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Internal Server Error", ErrDesc: "Error creating user"})
 				}
 			} else {
-				return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Internal server error", ErrDesc: err.Error()})
+				return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Internal Server Error", ErrDesc: err.Error()})
 			}
 		}
 
-		return c.JSON(http.StatusOK, user)
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"message": "Sign-in successful",
+			"user":    user,
+		})
 	}
 }
 
@@ -87,7 +93,7 @@ func AssignRole(authClient *auth.Client, uid string, role string) error {
 	return nil
 }
 
-func ResetPasswordHandler(userService UserService) echo.HandlerFunc {
+func ResetPasswordHandler(userService user.Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req model.ResetPassword
 

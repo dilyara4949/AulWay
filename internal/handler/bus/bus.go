@@ -21,11 +21,12 @@ type Service interface {
 // @Tags bus
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param requestBody body model.CreateRequest true "Request Body"
 // @Success 200 {object} domain.Bus  "Success"
 // @Failure 400 {object} errs.Err
 // @Failure 500 {object} errs.Err
-// @Router /bus [post]
+// @Router /buses [post]
 func CreateBusHandler(busService Service, cfg config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		//log
@@ -55,11 +56,12 @@ func CreateBusHandler(busService Service, cfg config.Config) echo.HandlerFunc {
 // @Tags bus
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param busId path string true "Bus ID"
 // @Success 200 {object} domain.Bus "Success"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
-// @Router /bus/{busId} [get]
+// @Router /buses/{busId} [get]
 func GetBusHandler(busService Service, cfg config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		busId := c.Param("busId")

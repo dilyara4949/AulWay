@@ -24,6 +24,10 @@ func NewUserService(userRepo user.Repository) *User {
 	}
 }
 
+func (service *User) GetUserById(ctx context.Context, id string) (*domain.User, error) {
+	return service.repo.Get(ctx, id)
+}
+
 func (service *User) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	return service.repo.GetByEmail(ctx, email)
 }
@@ -112,4 +116,8 @@ func (service *User) ValidateUser(ctx context.Context, signin auth.SigninRq) (*d
 	}
 
 	return usr, nil
+}
+
+func (service *User) GetUsers(ctx context.Context, page, pageSize int) ([]domain.User, error) {
+	return service.repo.GetUsers(ctx, page, pageSize)
 }
