@@ -9,3 +9,6 @@ migrate-down:
 create-migration:
 	@read -p "migration name: " name; \
 	migrate create -ext sql -dir internal/database/postgres/migration -tz "UTC" $$name
+
+initswag:
+	swag init --parseDependency --parseInternal --propertyStrategy pascalcase --parseDepth 3 -g main.go

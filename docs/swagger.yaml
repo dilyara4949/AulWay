@@ -189,104 +189,6 @@ paths:
       summary: Get Routes List
       tags:
       - route
-  /admin/users:
-    get:
-      consumes:
-      - application/json
-      description: Retrieves a paginated list of users.
-      parameters:
-      - default: 1
-        description: Page number
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - default: 10
-        description: Number of users per page
-        in: query
-        maximum: 100
-        minimum: 1
-        name: page_size
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of users
-          schema:
-            items:
-              $ref: '#/definitions/domain.User'
-            type: array
-        "500":
-          description: Failed to retrieve users
-          schema:
-            $ref: '#/definitions/errs.Err'
-      security:
-      - BearerAuth: []
-      summary: Get list of users
-      tags:
-      - users
-  /admin/users/{userId}:
-    get:
-      consumes:
-      - application/json
-      description: Fetches user details based on the provided user ID
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: User details retrieved successfully
-          schema:
-            $ref: '#/definitions/domain.User'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/errs.Err'
-      security:
-      - BearerAuth: []
-      summary: Get user details
-      tags:
-      - users
-    put:
-      consumes:
-      - application/json
-      description: Updates user information based on the given user ID
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: User update request body
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.UpdateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: User updated successfully
-        "400":
-          description: Invalid request body
-          schema:
-            $ref: '#/definitions/errs.Err'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/errs.Err'
-      security:
-      - BearerAuth: []
-      summary: Update user details
-      tags:
-      - users
   /api/routes:
     get:
       consumes:
@@ -345,67 +247,6 @@ paths:
       summary: Get Routes List
       tags:
       - route
-  /api/users/{userId}:
-    get:
-      consumes:
-      - application/json
-      description: Fetches user details based on the provided user ID
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: User details retrieved successfully
-          schema:
-            $ref: '#/definitions/domain.User'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/errs.Err'
-      security:
-      - BearerAuth: []
-      summary: Get user details
-      tags:
-      - users
-    put:
-      consumes:
-      - application/json
-      description: Updates user information based on the given user ID
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: User update request body
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/model.UpdateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: User updated successfully
-        "400":
-          description: Invalid request body
-          schema:
-            $ref: '#/definitions/errs.Err'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/errs.Err'
-      security:
-      - BearerAuth: []
-      summary: Update user details
-      tags:
-      - users
   /buses:
     post:
       consumes:
@@ -597,6 +438,104 @@ paths:
       summary: Update Route
       tags:
       - route
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a paginated list of users.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 10
+        description: Number of users per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of users
+          schema:
+            items:
+              $ref: '#/definitions/domain.User'
+            type: array
+        "500":
+          description: Failed to retrieve users
+          schema:
+            $ref: '#/definitions/errs.Err'
+      security:
+      - BearerAuth: []
+      summary: Get list of users
+      tags:
+      - users
+  /users/{userId}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches user details based on the provided user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User details retrieved successfully
+          schema:
+            $ref: '#/definitions/domain.User'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      security:
+      - BearerAuth: []
+      summary: Get user details
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Updates user information based on the given user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: User update request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User updated successfully
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      security:
+      - BearerAuth: []
+      summary: Update user details
+      tags:
+      - users
 securityDefinitions:
   BearerAuth:
     description: Use "Bearer {your-firebase-token}"
