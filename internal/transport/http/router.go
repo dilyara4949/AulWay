@@ -10,6 +10,7 @@ import (
 	routeRepostory "aulway/internal/repository/route"
 	userRepository "aulway/internal/repository/user"
 	"aulway/internal/service"
+	middleware "aulway/internal/transport/middlware"
 	"aulway/internal/utils/config"
 	fbAuth "firebase.google.com/go/auth"
 	"github.com/labstack/echo/v4"
@@ -64,7 +65,7 @@ func (r *Router) Build() *echo.Echo {
 	e.GET("/health", healthz.CheckHealth())
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	e.POST("/signin", auth.FirebaseSignIn(userService, r.fb))
+	e.POST("/auth/firebase-signin", auth.FirebaseSignIn(userService, r.fb))
 
 	// ------- user APIs
 	//
@@ -97,7 +98,7 @@ func (r *Router) Build() *echo.Echo {
 
 	e.PUT("/users/:userId", user.UpdateUserHandler(userService))
 	e.GET("/users/:userId", user.GetUserByIdHandler(userService))
-	e.GET("/users", user.GetUsersList(userService))
+	e.GET("/users", user.GetUsersList(userService), middleware.FirebaseAuthMiddleware(r.fb))
 
 	e.POST("/buses", bus.CreateBusHandler(busService, r.c))
 	e.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))

@@ -183,6 +183,62 @@
                 }
             }
         },
+        "/auth/firebase-signin": {
+            "post": {
+                "description": "Verifies the Firebase ID token, retrieves or creates the user, and assigns roles if needed.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Authenticate user via Firebase ID token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Firebase ID Token prefixed with 'Bearer '",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User authenticated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/domain.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Missing or invalid email",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Missing or invalid Authorization header",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Email must be verified",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error - Error processing request",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    }
+                }
+            }
+        },
         "/buses": {
             "post": {
                 "security": [

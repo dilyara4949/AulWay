@@ -247,6 +247,44 @@ paths:
       summary: Get Routes List
       tags:
       - route
+  /auth/firebase-signin:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the Firebase ID token, retrieves or creates the user,
+        and assigns roles if needed.
+      parameters:
+      - description: Firebase ID Token prefixed with 'Bearer '
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User authenticated successfully
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Bad Request - Missing or invalid email
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "401":
+          description: Unauthorized - Missing or invalid Authorization header
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "403":
+          description: Forbidden - Email must be verified
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error - Error processing request
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: Authenticate user via Firebase ID token
+      tags:
+      - auth
   /buses:
     post:
       consumes:

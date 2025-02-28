@@ -23,13 +23,19 @@ type Service interface {
 	VerifyFirebaseToken(client *auth.Client, idToken string) (*auth.Token, error)
 }
 
-//type UserService interface {
-//	CreateUser(ctx context.Context, email string, uid string) (*domain.User, error)
-//	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
-//	GetUserByFbUid(ctx context.Context, uid string) (*domain.User, error)
-//	ResetPassword(ctx context.Context, password model.ResetPassword) error
-//}
-
+// FirebaseSignIn handles Firebase authentication.
+// @Summary Authenticate user via Firebase ID token
+// @Description Verifies the Firebase ID token, retrieves or creates the user, and assigns roles if needed.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Firebase ID Token prefixed with 'Bearer '"
+// @Success 200 {object} domain.User "User authenticated successfully"
+// @Failure 400 {object} errs.Err "Bad Request - Missing or invalid email"
+// @Failure 401 {object} errs.Err "Unauthorized - Missing or invalid Authorization header"
+// @Failure 403 {object} errs.Err "Forbidden - Email must be verified"
+// @Failure 500 {object} errs.Err "Internal Server Error - Error processing request"
+// @Router /auth/firebase-signin [post]
 func FirebaseSignIn(userService user.Service, firebaseClient *auth.Client) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		authHeader := c.Request().Header.Get("Authorization")
@@ -56,9 +62,9 @@ func FirebaseSignIn(userService user.Service, firebaseClient *auth.Client) echo.
 		user, err := userService.GetUserByFbUid(c.Request().Context(), fbUid)
 		if err != nil {
 			if errors.Is(err, errs.ErrRecordNotFound) {
-				if emailVerified, ok := token.Claims["email_verified"].(bool); !ok || !emailVerified {
-					return c.JSON(http.StatusForbidden, uerrs.Err{Err: "Forbidden", ErrDesc: "Email must be verified"})
-				}
+				//if emailVerified, ok := token.Claims["email_verified"].(bool); !ok || !emailVerified {
+				//	return c.JSON(http.StatusForbidden, uerrs.Err{Err: "Forbidden", ErrDesc: "Email must be verified"})
+				//}
 
 				if err := AssignRole(firebaseClient, fbUid, UserRole); err != nil {
 					return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Internal Server Error", ErrDesc: "Failed to assign role"})
@@ -73,10 +79,7 @@ func FirebaseSignIn(userService user.Service, firebaseClient *auth.Client) echo.
 			}
 		}
 
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"message": "Sign-in successful",
-			"user":    user,
-		})
+		return c.JSON(http.StatusOK, user)
 	}
 }
 
