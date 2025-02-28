@@ -96,7 +96,7 @@ func (r *Router) Build() *echo.Echo {
 	//adminProtected.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
 
 	e.PUT("/users/:userId", user.UpdateUserHandler(userService))
-	e.GET("/users/userId", user.GetUserByIdHandler(userService))
+	e.GET("/users/:userId", user.GetUserByIdHandler(userService))
 	e.GET("/users", user.GetUsersList(userService))
 
 	e.POST("/buses", bus.CreateBusHandler(busService, r.c))
