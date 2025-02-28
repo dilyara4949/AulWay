@@ -15,14 +15,14 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/admin/routes": {
-            "get": {
+        "/api/buses": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a list of available routes based on filters",
+                "description": "Create Bus",
                 "consumes": [
                     "application/json"
                 ],
@@ -30,62 +30,73 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "route"
+                    "bus"
                 ],
-                "summary": "Get Routes List",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Departure location",
-                        "name": "departure",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Destination location",
-                        "name": "destination",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Travel date (format: YYYY-MM-DD)",
-                        "name": "date",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Number of passengers",
-                        "name": "passengers",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page number for pagination (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size for pagination (default: 30)",
-                        "name": "pageSize",
-                        "in": "query"
+                        "description": "Request Body",
+                        "name": "requestBody",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.CreateRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of routes",
+                        "description": "Success",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "array",
-                                "items": {
-                                    "$ref": "#/definitions/domain.Route"
-                                }
-                            }
+                            "$ref": "#/definitions/domain.Bus"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/buses/{busId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a bus by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bus"
+                ],
+                "summary": "Get Bus",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bus ID",
+                        "name": "busId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Bus"
                         }
                     },
                     "400": {
@@ -189,219 +200,7 @@ const docTemplate = `{
                         }
                     }
                 }
-            }
-        },
-        "/api/users/{userId}": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Updates user information based on the given user ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users public"
-                ],
-                "summary": "Update user details",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "User update request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.UpdateUserRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "User updated successfully"
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "$ref": "#/definitions/errs.Err"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/errs.Err"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/firebase-signin": {
-            "post": {
-                "description": "Verifies the Firebase ID token, retrieves or creates the user, and assigns roles if needed.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Authenticate user via Firebase ID token",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Firebase ID Token prefixed with 'Bearer '",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "User authenticated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/domain.User"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Missing or invalid email",
-                        "schema": {
-                            "$ref": "#/definitions/errs.Err"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized - Missing or invalid Authorization header",
-                        "schema": {
-                            "$ref": "#/definitions/errs.Err"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden - Email must be verified",
-                        "schema": {
-                            "$ref": "#/definitions/errs.Err"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error - Error processing request",
-                        "schema": {
-                            "$ref": "#/definitions/errs.Err"
-                        }
-                    }
-                }
-            }
-        },
-        "/buses": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Create Bus",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "bus"
-                ],
-                "parameters": [
-                    {
-                        "description": "Request Body",
-                        "name": "requestBody",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/model.CreateRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/domain.Bus"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/errs.Err"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/errs.Err"
-                        }
-                    }
-                }
-            }
-        },
-        "/buses/{busId}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a bus by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "bus"
-                ],
-                "summary": "Get Bus",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bus ID",
-                        "name": "busId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "$ref": "#/definitions/domain.Bus"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/errs.Err"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/errs.Err"
-                        }
-                    }
-                }
-            }
-        },
-        "/routes": {
+            },
             "post": {
                 "security": [
                     {
@@ -452,7 +251,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/routes/{routeId}": {
+        "/api/routes/{routeId}": {
             "get": {
                 "security": [
                     {
@@ -604,7 +403,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/users": {
+        "/api/users": {
             "get": {
                 "security": [
                     {
@@ -660,7 +459,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/{userId}": {
+        "/api/users/{userId}": {
             "get": {
                 "security": [
                     {
@@ -716,7 +515,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "users public"
+                    "users"
                 ],
                 "summary": "Update user details",
                 "parameters": [
@@ -749,6 +548,110 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/signin": {
+            "post": {
+                "description": "Authenticate a user and return an access token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User Signin",
+                "parameters": [
+                    {
+                        "description": "Signin Request Body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SigninRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SigninResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Password reset required",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found - User not found or incorrect credentials",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/signup": {
+            "post": {
+                "description": "Register a new user and return an access token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User Signup",
+                "parameters": [
+                    {
+                        "description": "Signup Request Body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.SignupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.SignupResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/errs.Err"
                         }
@@ -810,9 +713,6 @@ const docTemplate = `{
         "domain.User": {
             "type": "object",
             "properties": {
-                "FirebaseUID": {
-                    "type": "string"
-                },
                 "created_at": {
                     "type": "string"
                 },
@@ -896,6 +796,50 @@ const docTemplate = `{
                 }
             }
         },
+        "model.SigninRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SigninResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/model.UserResponse"
+                }
+            }
+        },
+        "model.SignupRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.SignupResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/model.UserResponse"
+                }
+            }
+        },
         "model.UpdateRouteRequest": {
             "type": "object",
             "required": [
@@ -941,6 +885,35 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UserResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "firstname": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lastname": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }

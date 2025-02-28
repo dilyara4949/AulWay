@@ -4,6 +4,7 @@ import (
 	"aulway/internal/domain"
 	auth "aulway/internal/handler/auth/model"
 	"aulway/internal/handler/user/model"
+	"aulway/internal/repository/errs"
 	"aulway/internal/repository/user"
 	"context"
 	"errors"
@@ -36,22 +37,43 @@ func (service *User) GetUserByFbUid(ctx context.Context, uid string) (*domain.Us
 	return service.repo.GetUserByFbUid(ctx, uid)
 }
 
-func (service *User) CreateUser(ctx context.Context, email string, uid string) (*domain.User, error) {
-	userid, err := uuid.NewV7()
+func (service *User) CreateUser(ctx context.Context, request auth.SignupRequest) (*domain.User, error) {
+	encryptedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(request.Password),
+		bcrypt.DefaultCost,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("generate uuid error: %w", err)
+		return nil, err
 	}
 
-	usr := domain.User{
+	userid, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
+	usr := &domain.User{
 		ID:                   userid.String(),
-		Email:                &email,
+		Email:                request.Email,
 		Role:                 userRole,
-		FirebaseUID:          uid,
+		Password:             string(encryptedPassword),
 		RequirePasswordReset: false,
 	}
 
-	err = service.repo.Create(ctx, &usr)
-	return &usr, err
+	err = service.repo.Create(ctx, usr)
+	return usr, err
+}
+
+func (service *User) ValidateUser(ctx context.Context, signin auth.SigninRequest) (*domain.User, error) {
+	usr, err := service.repo.GetByEmail(ctx, signin.Email)
+	if err != nil {
+		return nil, errs.ErrRecordNotFound
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(signin.Password)) != nil {
+		return nil, errors.New("invalid email or password")
+	}
+
+	return usr, nil
 }
 
 func (service *User) UpdateUser(ctx context.Context, req model.UpdateUserRequest, id string) error {
@@ -83,7 +105,7 @@ func (service *User) UpdateUser(ctx context.Context, req model.UpdateUserRequest
 }
 
 func (service *User) ResetPassword(ctx context.Context, req auth.ResetPassword) error {
-	usr, err := service.ValidateUser(ctx, auth.SigninRq{
+	usr, err := service.ValidateUser(ctx, auth.SigninRequest{
 		Email:    req.Email,
 		Password: req.OldPassword,
 	})
@@ -103,19 +125,6 @@ func (service *User) ResetPassword(ctx context.Context, req auth.ResetPassword) 
 
 	err = service.repo.UpdatePassword(ctx, usr.ID, string(encryptedPassword), false)
 	return err
-}
-
-func (service *User) ValidateUser(ctx context.Context, signin auth.SigninRq) (*domain.User, error) {
-	usr, err := service.repo.GetByEmail(ctx, signin.Email)
-	if err != nil {
-		return nil, err
-	}
-
-	if bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(signin.Password)) != nil {
-		return nil, errors.New("invalid password")
-	}
-
-	return usr, nil
 }
 
 func (service *User) GetUsers(ctx context.Context, page, pageSize int) ([]domain.User, error) {

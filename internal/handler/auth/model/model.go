@@ -1,13 +1,15 @@
 package model
 
-import "aulway/internal/domain"
+import (
+	"aulway/internal/handler/user/model"
+)
 
-type SignupRq struct {
-	Phone    string `json:"phone"`
+type SignupRequest struct {
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type SigninRq struct {
+type SigninRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
@@ -18,7 +20,12 @@ type ResetPassword struct {
 	NewPassword string `json:"new_password"`
 }
 
-type SignupRs struct {
-	AccessToken string      `json:"access_token"`
-	User        domain.User `json:"user"`
+type SigninResponse struct {
+	AccessToken string             `json:"access_token"`
+	User        model.UserResponse `json:"user"`
+}
+
+type SignupResponse struct {
+	AccessToken string             `json:"access_token"`
+	User        model.UserResponse `json:"user"`
 }

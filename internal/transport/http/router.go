@@ -43,6 +43,8 @@ func (r *Router) Build() *echo.Echo {
 	userRepo := userRepository.NewRepository(r.db)
 	userService := service.NewUserService(userRepo)
 
+	authService := service.NewAuthService(userRepo)
+
 	busRepo := busRepostory.New(r.db)
 	busService := service.NewBusService(busRepo)
 
@@ -65,11 +67,16 @@ func (r *Router) Build() *echo.Echo {
 	e.GET("/health", healthz.CheckHealth())
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	e.POST("/auth/firebase-signin", auth.FirebaseSignIn(userService, r.fb))
+	e.POST("/auth/signup", auth.SignupHandler(authService, userService, r.c))
+	e.POST("/auth/signin", auth.SigninHandler(authService, userService, r.c))
 
-	e.PUT("/users/:userId", user.UpdateUserHandler(userService))
-	e.GET("/users/:userId", user.GetUserByIdHandler(userService))
-	e.GET("/users", user.GetUsersList(userService))
+	publicProtected := e.Group("/api", middleware.FirebaseAuthMiddleware(r.fb))
+
+	adminProtected := e.Group("/api", middleware.FirebaseAuthMiddleware(r.fb), middleware.AccessCheckMiddleware(AdminRole))
+
+	publicProtected.PUT("/users/:userId", user.UpdateUserHandler(userService))
+	publicProtected.GET("/users/:userId", user.GetUserByIdHandler(userService))
+	adminProtected.GET("/users", user.GetUsersList(userService))
 
 	e.POST("/buses", bus.CreateBusHandler(busService, r.c))
 	e.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))
@@ -80,15 +87,9 @@ func (r *Router) Build() *echo.Echo {
 	e.DELETE("/routes/:routeId", route.DeleteRouteHandler(routeService, r.c))
 	e.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
 
-	// ------- user APIs
-	//
-	publicProtected := e.Group("/api", middleware.FirebaseAuthMiddleware(r.fb))
-	//
-	publicProtected.PUT("/users/:userId", user.UpdateUserHandler(userService))
-	publicProtected.GET("/users/:userId", user.GetUserByIdHandler(userService))
 	//
 	//publicProtected.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))
-	//
+
 	//publicProtected.GET("/routes/:routeId", route.GetRouteHandler(routeService, r.c))
 	//publicProtected.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
 	//
