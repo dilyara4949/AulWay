@@ -70,9 +70,9 @@ func (r *Router) Build() *echo.Echo {
 	e.POST("/auth/signup", auth.SignupHandler(authService, userService, r.c))
 	e.POST("/auth/signin", auth.SigninHandler(authService, userService, r.c))
 
-	publicProtected := e.Group("/api", middleware.FirebaseAuthMiddleware(r.fb))
+	publicProtected := e.Group("/api", middleware.JWTAuth(r.c.JWTTokenSecret))
 
-	adminProtected := e.Group("/api", middleware.FirebaseAuthMiddleware(r.fb), middleware.AccessCheckMiddleware(AdminRole))
+	adminProtected := e.Group("/api", middleware.JWTAuth(r.c.JWTTokenSecret))
 
 	publicProtected.PUT("/users/:userId", user.UpdateUserHandler(userService))
 	publicProtected.GET("/users/:userId", user.GetUserByIdHandler(userService))
