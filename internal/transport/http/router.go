@@ -72,20 +72,20 @@ func (r *Router) Build() *echo.Echo {
 
 	publicProtected := e.Group("/api", middleware.JWTAuth(r.c.JWTTokenSecret))
 
-	adminProtected := e.Group("/api", middleware.JWTAuth(r.c.JWTTokenSecret))
+	adminProtected := e.Group("/api", middleware.JWTAuth(r.c.JWTTokenSecret), middleware.AccessCheck(AdminRole))
 
 	publicProtected.PUT("/users/:userId", user.UpdateUserHandler(userService))
 	publicProtected.GET("/users/:userId", user.GetUserByIdHandler(userService))
 	adminProtected.GET("/users", user.GetUsersList(userService))
 
-	e.POST("/buses", bus.CreateBusHandler(busService, r.c))
-	e.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))
+	adminProtected.POST("/buses", bus.CreateBusHandler(busService, r.c))
+	adminProtected.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))
 
-	e.POST("/routes", route.CreateRouteHandler(routeService, busService, r.c))
-	e.GET("/routes/:routeId", route.GetRouteHandler(routeService, r.c))
-	e.PUT("/routes/:routeId", route.UpdateRouteHandler(routeService, r.c))
-	e.DELETE("/routes/:routeId", route.DeleteRouteHandler(routeService, r.c))
-	e.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
+	adminProtected.POST("/routes", route.CreateRouteHandler(routeService, busService, r.c))
+	publicProtected.GET("/routes/:routeId", route.GetRouteHandler(routeService, r.c))
+	adminProtected.PUT("/routes/:routeId", route.UpdateRouteHandler(routeService, r.c))
+	adminProtected.DELETE("/routes/:routeId", route.DeleteRouteHandler(routeService, r.c))
+	publicProtected.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
 
 	//
 	//publicProtected.GET("/buses/:busId", bus.GetBusHandler(busService, r.c))

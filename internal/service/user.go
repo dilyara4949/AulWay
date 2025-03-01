@@ -76,7 +76,7 @@ func (service *User) ValidateUser(ctx context.Context, signin auth.SigninRequest
 	return usr, nil
 }
 
-func (service *User) UpdateUser(ctx context.Context, req model.UpdateUserRequest, id string) error {
+func (service *User) UpdateUser(ctx context.Context, req model.UpdateUserRequest, id string) (*domain.User, error) {
 	updates := make(map[string]interface{})
 
 	if req.FirstName != nil {
@@ -87,7 +87,7 @@ func (service *User) UpdateUser(ctx context.Context, req model.UpdateUserRequest
 	}
 	if req.Email != nil {
 		if err := req.ValidateEmail(*req.Email); err != nil {
-			return err
+			return nil, err
 		}
 
 		updates["email"] = *req.Email
@@ -97,11 +97,17 @@ func (service *User) UpdateUser(ctx context.Context, req model.UpdateUserRequest
 		updates["phone"] = *req.Phone
 	}
 
-	if len(updates) == 0 {
-		return nil
+	err := service.repo.Update(ctx, updates, id)
+	if err != nil {
+		return nil, err
 	}
 
-	return service.repo.Update(ctx, updates, id)
+	usr, err := service.repo.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return usr, nil
 }
 
 func (service *User) ResetPassword(ctx context.Context, req auth.ResetPassword) error {

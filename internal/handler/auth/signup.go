@@ -21,7 +21,6 @@ const (
 )
 
 type Service interface {
-	VerifyFirebaseToken(client *auth.Client, idToken string) (*auth.Token, error)
 	CreateAccessToken(ctx context.Context, user domain.User, jwtSecret string, expiry int) (string, error)
 }
 
@@ -96,66 +95,6 @@ func domainUserToResponse(user domain.User) usermodel.UserResponse {
 //		})
 //	}
 //	return res
-//}
-
-// FirebaseSignIn handles Firebase authentication.
-// @Summary Authenticate user via Firebase ID token
-// @Description Verifies the Firebase ID token, retrieves or creates the user, and assigns roles if needed.
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "Firebase ID Token prefixed with 'Bearer '"
-// @Success 200 {object} domain.User "User authenticated successfully"
-// @Failure 400 {object} errs.Err "Bad Request - Missing or invalid email"
-// @Failure 401 {object} errs.Err "Unauthorized - Missing or invalid Authorization header"
-// @Failure 403 {object} errs.Err "Forbidden - Email must be verified"
-// @Failure 500 {object} errs.Err "Internal Server Error - Error processing request"
-// @Router /auth/firebase-signin [post]
-//func FirebaseSignIn(userService user.Service, firebaseClient *auth.Client) echo.HandlerFunc {
-//	return func(c echo.Context) error {
-//		authHeader := c.Request().Header.Get("Authorization")
-//		if !strings.HasPrefix(authHeader, "Bearer ") {
-//			return c.JSON(http.StatusUnauthorized, uerrs.Err{Err: "Unauthorized", ErrDesc: "Missing or invalid Authorization header"})
-//		}
-//
-//		fbToken := strings.TrimPrefix(authHeader, "Bearer ")
-//		if fbToken == "" {
-//			return c.JSON(http.StatusUnauthorized, uerrs.Err{Err: "Unauthorized", ErrDesc: "Firebase token is missing"})
-//		}
-//
-//		token, err := firebaseClient.VerifyIDToken(c.Request().Context(), fbToken)
-//		if err != nil {
-//			return c.JSON(http.StatusUnauthorized, uerrs.Err{Err: "Unauthorized", ErrDesc: "Invalid Firebase token"})
-//		}
-//
-//		fbUid := token.UID
-//		email, ok := token.Claims["email"].(string)
-//		if !ok || email == "" {
-//			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "Bad Request", ErrDesc: "Email is required"})
-//		}
-//
-//		usr, err := userService.GetUserByFbUid(c.Request().Context(), fbUid)
-//		if err != nil {
-//			if errors.Is(err, errs.ErrRecordNotFound) {
-//				//if emailVerified, ok := token.Claims["email_verified"].(bool); !ok || !emailVerified {
-//				//	return c.JSON(http.StatusForbidden, uerrs.Err{Err: "Forbidden", ErrDesc: "Email must be verified"})
-//				//}
-//
-//				if err := AssignRole(firebaseClient, fbUid, UserRole); err != nil {
-//					return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Internal Server Error", ErrDesc: "Failed to assign role"})
-//				}
-//
-//				usr, err = userService.CreateUser(c.Request().Context(), email, fbUid)
-//				if err != nil {
-//					return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Internal Server Error", ErrDesc: "Error creating user"})
-//				}
-//			} else {
-//				return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Internal Server Error", ErrDesc: err.Error()})
-//			}
-//		}
-//
-//		return c.JSON(http.StatusOK, usr)
-//	}
 //}
 
 func AssignRole(authClient *auth.Client, uid string, role string) error {

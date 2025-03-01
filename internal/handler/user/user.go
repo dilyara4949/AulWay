@@ -2,7 +2,8 @@ package user
 
 import (
 	"aulway/internal/domain"
-	auth "aulway/internal/handler/auth/model"
+	"aulway/internal/handler/access"
+	authModel "aulway/internal/handler/auth/model"
 	"aulway/internal/handler/pagination"
 	"aulway/internal/handler/user/model"
 	"aulway/internal/utils/errs"
@@ -12,14 +13,14 @@ import (
 )
 
 type Service interface {
-	CreateUser(ctx context.Context, request auth.SignupRequest) (*domain.User, error)
+	CreateUser(ctx context.Context, request authModel.SignupRequest) (*domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetUserByFbUid(ctx context.Context, uid string) (*domain.User, error)
 	GetUserById(ctx context.Context, uid string) (*domain.User, error)
-	UpdateUser(ctx context.Context, req model.UpdateUserRequest, id string) error
-	ResetPassword(ctx context.Context, password auth.ResetPassword) error
+	UpdateUser(ctx context.Context, req model.UpdateUserRequest, id string) (*domain.User, error)
+	ResetPassword(ctx context.Context, password authModel.ResetPassword) error
 	GetUsers(ctx context.Context, page, pageSize int) ([]domain.User, error)
-	ValidateUser(ctx context.Context, signin auth.SigninRequest) (*domain.User, error)
+	ValidateUser(ctx context.Context, signin authModel.SigninRequest) (*domain.User, error)
 }
 
 // UpdateUserHandler updates user information
@@ -31,12 +32,16 @@ type Service interface {
 // @Param userId path string true "User ID"
 // @Param request body model.UpdateUserRequest true "User update request body"
 // @Security BearerAuth
-// @Success 200 {object} nil "User updated successfully"
+// @Success 200 {object} model.UserResponse "User updated successfully"
 // @Failure 400 {object} errs.Err "Invalid request body"
 // @Failure 500 {object} errs.Err "Internal server error"
 // @Router /api/users/{userId} [put]
 func UpdateUserHandler(service Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		if !access.Check(c, c.Get("user_id"), "userId") {
+			return c.JSON(http.StatusForbidden, errs.Err{Err: "Update user failed", ErrDesc: "access denied"})
+		}
+
 		userId := c.Param("userId")
 
 		req := model.UpdateUserRequest{}
@@ -45,12 +50,14 @@ func UpdateUserHandler(service Service) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, errs.Err{Err: "Binding request body failed", ErrDesc: err.Error()})
 		}
 
-		err := service.UpdateUser(c.Request().Context(), req, userId)
+		usr, err := service.UpdateUser(c.Request().Context(), req, userId)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "Update user failed", ErrDesc: err.Error()})
 		}
 
-		return c.JSON(http.StatusOK, nil)
+		response := domainUserToResponse(*usr)
+
+		return c.JSON(http.StatusOK, response)
 	}
 }
 
@@ -67,6 +74,10 @@ func UpdateUserHandler(service Service) echo.HandlerFunc {
 // @Router /api/users/{userId} [get]
 func GetUserByIdHandler(service Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		if !access.Check(c, c.Get("user_id"), "userId") {
+			return c.JSON(http.StatusForbidden, errs.Err{Err: "Update user failed", ErrDesc: "access denied"})
+		}
+
 		userId := c.Param("userId")
 
 		user, err := service.GetUserById(c.Request().Context(), userId)
@@ -100,5 +111,18 @@ func GetUsersList(service Service) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, users)
+	}
+}
+
+func domainUserToResponse(user domain.User) model.UserResponse {
+	return model.UserResponse{
+		ID:        user.ID,
+		Email:     user.Email,
+		Phone:     user.Phone,
+		Role:      user.Role,
+		Firstname: user.FirstName,
+		Lastname:  user.LastName,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}
 }

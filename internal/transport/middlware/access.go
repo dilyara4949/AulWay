@@ -6,10 +6,11 @@ import (
 	"net/http"
 )
 
-func AccessCheckMiddleware(allowedRoles ...string) echo.MiddlewareFunc {
+func AccessCheck(allowedRoles ...string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			role, ok := c.Get(RoleContextKey).(string)
+			role, ok := c.Get(UserRoleKey).(string)
+
 			if !ok {
 				log.Println("Role not found in context")
 				return echo.NewHTTPError(http.StatusForbidden, "access denied")

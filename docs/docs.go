@@ -538,7 +538,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "User updated successfully"
+                        "description": "User updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/model.UserResponse"
+                        }
                     },
                     "400": {
                         "description": "Invalid request body",
@@ -785,14 +788,16 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "end_date": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-12-12T13:00:00+05:00"
                 },
                 "price": {
                     "type": "integer",
                     "minimum": 0
                 },
                 "start_date": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-12-12T13:00:00+05:00"
                 }
             }
         },
@@ -861,14 +866,16 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "end_date": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-12-12T13:00:00+05:00"
                 },
                 "price": {
                     "type": "integer",
                     "minimum": 0
                 },
                 "start_date": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-12-12T13:00:00+05:00"
                 }
             }
         },
