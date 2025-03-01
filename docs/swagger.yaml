@@ -75,11 +75,13 @@ definitions:
       destination:
         type: string
       end_date:
+        example: "2025-12-12T13:00:00+05:00"
         type: string
       price:
         minimum: 0
         type: integer
       start_date:
+        example: "2025-12-12T13:00:00+05:00"
         type: string
     required:
     - bus_id
@@ -126,11 +128,13 @@ definitions:
       destination:
         type: string
       end_date:
+        example: "2025-12-12T13:00:00+05:00"
         type: string
       price:
         minimum: 0
         type: integer
       start_date:
+        example: "2025-12-12T13:00:00+05:00"
         type: string
     required:
     - bus_id
@@ -509,6 +513,8 @@ paths:
       responses:
         "200":
           description: User updated successfully
+          schema:
+            $ref: '#/definitions/model.UserResponse'
         "400":
           description: Invalid request body
           schema:

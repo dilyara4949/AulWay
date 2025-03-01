@@ -5,7 +5,6 @@ import (
 	"aulway/internal/repository/user"
 	"context"
 	"errors"
-	"firebase.google.com/go/auth"
 	"github.com/golang-jwt/jwt/v4"
 	"regexp"
 	"strings"
@@ -14,7 +13,7 @@ import (
 
 type Claims struct {
 	UserID string `json:"user_id"`
-	Role   string `json:"role"`
+	Role   string `json:"user_role"`
 	jwt.RegisteredClaims
 }
 
@@ -26,14 +25,6 @@ func NewAuthService(userRepo user.Repository) *Auth {
 	return &Auth{
 		repo: userRepo,
 	}
-}
-
-func (service *Auth) VerifyFirebaseToken(client *auth.Client, idToken string) (*auth.Token, error) {
-	token, err := client.VerifyIDToken(context.Background(), idToken)
-	if err != nil {
-		return nil, err
-	}
-	return token, nil
 }
 
 func (service *Auth) CreateAccessToken(ctx context.Context, user domain.User, jwtSecret string, expiry int) (string, error) {
@@ -55,26 +46,6 @@ func (service *Auth) CreateAccessToken(ctx context.Context, user domain.User, jw
 
 	return accessToken, nil
 }
-
-//func (service *Auth) CreateAccessToken(ctx context.Context, user domain.User, jwtSecret string, expiry int) (string, error) {
-//	expirationTime := time.Now().Add(time.Duration(expiry) * time.Hour)
-//	claims := &Claims{
-//		UserID: user.ID,
-//		Role:   user.Role,
-//		RegisteredClaims: jwt.RegisteredClaims{
-//			ExpiresAt: jwt.NewNumericDate(expirationTime),
-//		},
-//	}
-//
-//	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-//
-//	accessToken, err := token.SignedString([]byte(jwtSecret))
-//	if err != nil {
-//		return "", err
-//	}
-//
-//	return accessToken, nil
-//}
 
 func (service *Auth) ValidatePhone(phone string) error {
 	phone = strings.ReplaceAll(phone, " ", "")

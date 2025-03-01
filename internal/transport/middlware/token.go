@@ -7,13 +7,12 @@ import (
 	"net/http"
 	"strings"
 
-	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
-	RoleContextKey = "role"
-	UserIDKey      = "user_id"
-	UserRoleKey    = "user_role"
+	UserIDKey   = "user_id"
+	UserRoleKey = "user_role"
 )
 
 func JWTAuth(jwtSecret string) echo.MiddlewareFunc {
@@ -47,7 +46,7 @@ func JWTAuth(jwtSecret string) echo.MiddlewareFunc {
 					return c.JSON(http.StatusBadRequest, errs.Err{Err: "authorization failed", ErrDesc: "invalid token"})
 				}
 
-				claimedRole, ok := claims[RoleContextKey].(string)
+				claimedRole, ok := claims[UserRoleKey].(string)
 				if !ok {
 					slog.Error("authorization", "error", "no role property in claims")
 					return c.JSON(http.StatusBadRequest, errs.Err{Err: "authorization failed", ErrDesc: "invalid token"})
