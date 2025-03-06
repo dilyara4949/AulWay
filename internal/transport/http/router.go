@@ -64,6 +64,12 @@ func (r *Router) Build() *echo.Echo {
 	e.Debug = true
 	e.Use(echoMiddleware.Recover(), timeoutWithConfig, echoMiddleware.Logger())
 
+	e.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:8080", "https://yourfrontend.com"},
+		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE, echo.OPTIONS},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+	}))
+
 	e.GET("/health", healthz.CheckHealth())
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
