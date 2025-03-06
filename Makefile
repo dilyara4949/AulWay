@@ -12,3 +12,8 @@ create-migration:
 
 initswag:
 	swag init --parseDependency --parseInternal --propertyStrategy pascalcase --parseDepth 3 -g main.go
+
+stripe:
+	brew install stripe/stripe-cli/stripe # Mac
+	docker run -d -p 12111:12111 stripe/stripe-mock # Docker
+
