@@ -31,6 +31,28 @@ definitions:
       updated_at:
         type: string
     type: object
+  domain.Ticket:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      payment_status:
+        description: '"pending", "paid", "failed"'
+        type: string
+      price:
+        type: integer
+      qr_code:
+        description: Optional field for QR code storage
+        type: string
+      route_id:
+        type: string
+      status:
+        description: '"approved", "cancelled", "awaiting"'
+        type: string
+      user_id:
+        type: string
+    type: object
   domain.User:
     properties:
       created_at:
@@ -428,6 +450,45 @@ paths:
       summary: Update Route
       tags:
       - route
+  /api/tickets/{routeId}:
+    post:
+      consumes:
+      - application/json
+      description: Allows a user to purchase a ticket for a specific route using card
+        details.
+      parameters:
+      - description: Route ID
+        in: path
+        name: routeId
+        required: true
+        type: string
+      - description: Payment method id
+        in: query
+        name: payment_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully purchased ticket
+          schema:
+            $ref: '#/definitions/domain.Ticket'
+        "400":
+          description: Invalid request or request binding failed
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Buy a ticket
+      tags:
+      - Tickets
   /api/users:
     get:
       consumes:

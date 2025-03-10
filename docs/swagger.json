@@ -395,6 +395,65 @@
                 }
             }
         },
+        "/api/tickets/{routeId}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows a user to purchase a ticket for a specific route using card details.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Buy a ticket",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Route ID",
+                        "name": "routeId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Payment method id",
+                        "name": "payment_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Successfully purchased ticket",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Ticket"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or request binding failed",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/users": {
             "get": {
                 "security": [
@@ -701,6 +760,38 @@
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Ticket": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "payment_status": {
+                    "description": "\"pending\", \"paid\", \"failed\"",
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "qr_code": {
+                    "description": "Optional field for QR code storage",
+                    "type": "string"
+                },
+                "route_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "\"approved\", \"cancelled\", \"awaiting\"",
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "string"
                 }
             }

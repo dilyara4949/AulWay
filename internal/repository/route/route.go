@@ -35,6 +35,15 @@ func (repo *Repository) Update(ctx context.Context, updates map[string]interface
 	return nil
 }
 
+func (repo *Repository) UpdateSeat(ctx context.Context, tx *gorm.DB, updates map[string]interface{}, id string) error {
+	err := tx.WithContext(ctx).Model(&domain.Route{}).Where("id = ?", id).Updates(updates).Error
+	if err != nil {
+		return fmt.Errorf("failed to update route: %w", err)
+	}
+
+	return nil
+}
+
 func (repo *Repository) Get(ctx context.Context, id string) (*domain.Route, error) {
 	route := new(domain.Route)
 

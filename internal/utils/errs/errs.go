@@ -14,6 +14,7 @@ func (e Err) Error() string {
 	return fmt.Sprintf("%s: %s", e.Err, e.ErrDesc)
 }
 
+var ErrNoSeatsAvailable = errors.New("no seats available")
 var ErrEmptyRequestFields = errors.New("request fields cannot be empty")
 var ErrRequestBinding = errors.New("request binding error")
 var ErrIncorrectPhoneFormat = errors.New("incorrect phone format error")
