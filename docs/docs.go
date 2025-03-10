@@ -410,7 +410,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Allows a user to purchase a ticket for a specific route using card details.",
+                "description": "Allows a user to purchase one or more tickets for a specific route using card details.",
                 "consumes": [
                     "application/json"
                 ],
@@ -420,7 +420,7 @@ const docTemplate = `{
                 "tags": [
                     "Tickets"
                 ],
-                "summary": "Buy a ticket",
+                "summary": "Buy tickets",
                 "parameters": [
                     {
                         "type": "string",
@@ -431,17 +431,29 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Payment method id",
+                        "description": "Payment method ID",
                         "name": "payment_id",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "description": "Buy Ticket Request Body",
+                        "name": "requestBody",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.BuyTicketRequest"
+                        }
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Successfully purchased ticket",
+                    "200": {
+                        "description": "Successfully purchased tickets",
                         "schema": {
-                            "$ref": "#/definitions/domain.Ticket"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.Ticket"
+                            }
                         }
                     },
                     "400": {
@@ -844,6 +856,14 @@ const docTemplate = `{
                 },
                 "error": {
                     "type": "string"
+                }
+            }
+        },
+        "model.BuyTicketRequest": {
+            "type": "object",
+            "properties": {
+                "quantity": {
+                    "type": "integer"
                 }
             }
         },
