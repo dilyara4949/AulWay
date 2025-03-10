@@ -7,8 +7,12 @@ import (
 	ticketRepo "aulway/internal/repository/ticket"
 	"aulway/internal/utils/errs"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/skip2/go-qrcode"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -31,7 +35,11 @@ type TicketService struct {
 //4242 4242 4242 4242 (Visa) – Succeeds
 //4000 0000 0000 9995 (Declined)
 
-func (s *TicketService) BuyTicket(ctx context.Context, userID, routeID string, paymentMethodID string) (*domain.Ticket, error) {
+func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, paymentMethodID string, quantity int) ([]domain.Ticket, error) {
+	if quantity <= 0 {
+		return nil, errors.New("quantity must be positive")
+	}
+
 	tx := s.TicketRepo.BeginTransaction()
 	defer func() {
 		if r := recover(); r != nil {
@@ -39,78 +47,88 @@ func (s *TicketService) BuyTicket(ctx context.Context, userID, routeID string, p
 		}
 	}()
 
-	// Fetch route and check seat availability
 	route, err := s.RouteRepo.Get(ctx, routeID)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
-	if route.AvailableSeats <= 0 {
+	if route.AvailableSeats < quantity {
 		tx.Rollback()
 		return nil, errs.ErrNoSeatsAvailable
 	}
 
-	// Create ticket
-	ticketId, _ := uuid.NewV7()
-	ticket := &domain.Ticket{
-		ID:            ticketId.String(),
-		UserID:        userID,
-		RouteID:       routeID,
-		Price:         route.Price,
-		Status:        "awaiting",
-		PaymentStatus: "pending",
-		CreatedAt:     time.Now(),
-	}
+	var tickets []domain.Ticket
 
-	err = s.TicketRepo.Create(ctx, tx, ticket)
-	if err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("failed to create ticket: %w", err)
-	}
+	for i := 0; i < quantity; i++ {
+		// Create ticket
+		ticketId, _ := uuid.NewV7()
+		ticket := domain.Ticket{
+			ID:            ticketId.String(),
+			UserID:        userID,
+			RouteID:       routeID,
+			Price:         route.Price,
+			Status:        "awaiting",
+			PaymentStatus: "pending",
+			CreatedAt:     time.Now(),
+		}
 
-	// Process payment **before** committing ticket
-	transactionId, _ := uuid.NewV7()
-	success, stripeErr := s.PaymentProcessor.ProcessPayment(ctx, userID, ticket.Price, paymentMethodID)
-	if stripeErr != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("payment failed: %w", stripeErr)
-	}
+		err = s.TicketRepo.Create(ctx, tx, &ticket)
+		if err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("failed to create ticket: %w", err)
+		}
 
-	if !success {
-		tx.Rollback()
-		return nil, fmt.Errorf("payment was not successful")
-	}
+		qrCodePath, err := generateQRCode(&ticket)
+		if err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("failed to generate QR code: %w", err)
+		}
+		ticket.QRCode = qrCodePath
 
-	// Create payment record
-	paymentId, _ := uuid.NewV7()
-	payment := &domain.Payment{
-		ID:            paymentId.String(),
-		UserID:        userID,
-		TicketID:      ticket.ID,
-		Amount:        ticket.Price,
-		Status:        "successful",
-		TransactionID: transactionId.String(),
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
-	}
+		transactionId, _ := uuid.NewV7()
+		success, stripeErr := s.PaymentProcessor.ProcessPayment(ctx, userID, ticket.Price, paymentMethodID)
+		if stripeErr != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("payment failed: %w", stripeErr)
+		}
+		if !success {
+			tx.Rollback()
+			return nil, fmt.Errorf("payment was not successful")
+		}
 
-	err = s.PaymentRepo.Create(ctx, tx, payment)
-	if err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("failed to create payment: %w", err)
-	}
+		// Create payment record
+		paymentId, _ := uuid.NewV7()
+		payment := &domain.Payment{
+			ID:            paymentId.String(),
+			UserID:        userID,
+			TicketID:      ticket.ID,
+			Amount:        ticket.Price,
+			Status:        "successful",
+			TransactionID: transactionId.String(),
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		}
 
-	err = s.TicketRepo.Update(ctx, tx, map[string]interface{}{
-		"status":         "approved",
-		"payment_status": "paid",
-	}, ticket.ID)
-	if err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("failed to update ticket: %w", err)
+		err = s.PaymentRepo.Create(ctx, tx, payment)
+		if err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("failed to create payment: %w", err)
+		}
+
+		err = s.TicketRepo.Update(ctx, tx, map[string]interface{}{
+			"status":         "approved",
+			"payment_status": "paid",
+		}, ticket.ID)
+		if err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("failed to update ticket: %w", err)
+		}
+
+		tickets = append(tickets, ticket)
 	}
 
 	err = s.RouteRepo.UpdateSeat(ctx, tx, map[string]interface{}{
-		"available_seats": route.AvailableSeats - 1,
+		"available_seats": route.AvailableSeats - quantity,
 	}, route.Id)
 	if err != nil {
 		tx.Rollback()
@@ -118,130 +136,26 @@ func (s *TicketService) BuyTicket(ctx context.Context, userID, routeID string, p
 	}
 
 	tx.Commit()
-	return ticket, nil
+	return tickets, nil
 }
 
-//func (s *TicketService) BuyTicket(ctx context.Context, userID, routeID string, paymentMethodID string) (*domain.Ticket, error) {
-//	tx := s.TicketRepo.BeginTransaction()
-//	defer func() {
-//		if r := recover(); r != nil {
-//			tx.Rollback()
-//		}
-//	}()
-//
-//	route, err := s.RouteRepo.Get(ctx, routeID)
-//	if err != nil {
-//		tx.Rollback()
-//		return nil, err
-//	}
-//	if route.AvailableSeats <= 0 {
-//		tx.Rollback()
-//		return nil, errs.ErrNoSeatsAvailable
-//	}
-//
-//	ticketId, _ := uuid.NewV7()
-//	ticket := &domain.Ticket{
-//		ID:            ticketId.String(),
-//		UserID:        userID,
-//		RouteID:       routeID,
-//		Price:         route.Price,
-//		Status:        "awaiting",
-//		PaymentStatus: "pending",
-//		CreatedAt:     time.Now(),
-//	}
-//
-//	err = s.TicketRepo.Create(ctx, tx, ticket)
-//	if err != nil {
-//		tx.Rollback()
-//		return nil, fmt.Errorf("failed to create ticket: %w", err)
-//	}
-//
-//	tx.Commit()
-//
-//	transactionId, _ := uuid.NewV7()
-//	success, stripeErr := s.PaymentProcessor.ProcessPayment(ctx, userID, ticket.Price, paymentMethodID)
-//	if stripeErr != nil {
-//		tx.Rollback()
-//		return nil, fmt.Errorf("payment failed: %w", stripeErr)
-//	}
-//
-//	if !success {
-//		tx.Rollback()
-//		return nil, fmt.Errorf("payment was not successful")
-//	}
-//
-//	paymentId, _ := uuid.NewV7()
-//	payment := &domain.Payment{
-//		ID:            paymentId.String(),
-//		UserID:        userID,
-//		TicketID:      ticket.ID,
-//		Amount:        ticket.Price,
-//		Status:        "successful",
-//		TransactionID: transactionId.String(),
-//		CreatedAt:     time.Now(),
-//		UpdatedAt:     time.Now(),
-//	}
-//
-//	err = s.PaymentRepo.Create(ctx, payment)
-//	if err != nil {
-//		tx.Rollback()
-//		return nil, fmt.Errorf("failed to create payment: %w", err)
-//	}
-//
-//	err = s.TicketRepo.Update(ctx, tx, map[string]interface{}{
-//		"status":         "approved",
-//		"payment_status": "paid",
-//	}, ticket.ID)
-//	if err != nil {
-//		tx.Rollback()
-//		return nil, fmt.Errorf("failed to update ticket: %w", err)
-//	}
-//
-//	err = s.RouteRepo.Update(ctx, map[string]interface{}{
-//		"available_seats": route.AvailableSeats - 1,
-//	}, route.Id)
-//	if err != nil {
-//		tx.Rollback()
-//		return nil, fmt.Errorf("failed to update route seats: %w", err)
-//	}
-//
-//	tx.Commit()
-//	return ticket, nil
-//}
+func generateQRCode(ticket *domain.Ticket) (string, error) {
+	qrDir := "qrcodes"
+	qrPath := filepath.Join(qrDir, fmt.Sprintf("%s.png", ticket.ID))
 
-//func (s *TicketService) ProcessPayment(ctx context.Context, userID string, amount int, card domain.CardDetails) (bool, error) {
-//	stripe.Key = "sk_test_your_secret_key"
-//
-//	pmParams := &stripe.PaymentMethodParams{
-//		Type: stripe.String("card"),
-//		Card: &stripe.PaymentMethodCardParams{
-//			Number:   stripe.String(card.Number),
-//			ExpMonth: stripe.Int64(card.ExpMonth),
-//			ExpYear:  stripe.Int64(card.ExpYear),
-//			CVC:      stripe.String(card.CVC),
-//		},
-//	}
-//
-//	paymentMethod, err := paymentmethod.New(pmParams)
-//	if err != nil {
-//		return false, fmt.Errorf("failed to create payment method: %w", err)
-//	}
-//
-//	params := &stripe.PaymentIntentParams{
-//		Amount:        stripe.Int64(int64(amount * 100)),
-//		Currency:      stripe.String("usd"),
-//		PaymentMethod: stripe.String(paymentMethod.ID),
-//		Confirm:       stripe.Bool(true),
-//	}
-//
-//	pi, err := paymentintent.New(params)
-//	if err != nil {
-//		return false, fmt.Errorf("stripe payment failed: %w", err)
-//	}
-//
-//	if pi.Status != stripe.PaymentIntentStatusSucceeded {
-//		return false, fmt.Errorf("payment not successful")
-//	}
-//
-//	return true, nil
-//}
+	// Ensure directory exists
+	if err := os.MkdirAll(qrDir, os.ModePerm); err != nil {
+		return "", fmt.Errorf("failed to create QR code directory: %w", err)
+	}
+
+	// QR code content - URL for ticket PDF download
+	qrContent := fmt.Sprintf("https://localhos:8080/api/tickets/%s/download", ticket.ID)
+
+	// Generate and save the QR code
+	err := qrcode.WriteFile(qrContent, qrcode.Medium, 256, qrPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate QR code: %w", err)
+	}
+
+	return qrPath, nil
+}
