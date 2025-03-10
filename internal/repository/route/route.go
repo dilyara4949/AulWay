@@ -3,6 +3,7 @@ package route
 import (
 	"aulway/internal/domain"
 	"aulway/internal/repository/errs"
+	uerror "aulway/internal/utils/errs"
 	"context"
 	"errors"
 	"fmt"
@@ -104,4 +105,17 @@ func (repo *Repository) GetRoutesList(ctx context.Context, departure, destinatio
 	}
 
 	return routes, total, nil
+}
+
+func (repo *Repository) GetAllRoutesList(ctx context.Context, page, pageSize int) ([]domain.Route, error) {
+
+	var routes []domain.Route
+
+	offset := (page - 1) * pageSize
+
+	if err := repo.db.WithContext(ctx).Limit(pageSize).Offset(offset).Find(&routes).Error; err != nil {
+		return nil, uerror.Err{ErrDesc: "get page error: %w", Err: err.Error()}
+	}
+
+	return routes, nil
 }

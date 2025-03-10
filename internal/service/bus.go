@@ -42,3 +42,7 @@ func (service *Bus) GetByNumber(ctx context.Context, number string) (*domain.Bus
 func (service *Bus) Get(ctx context.Context, id string) (*domain.Bus, error) {
 	return service.repo.Get(ctx, id)
 }
+
+func (service *Bus) GetBusesList(ctx context.Context, page, pageSize int) ([]domain.Bus, error) {
+	return service.repo.GetBusesList(ctx, page, pageSize)
+}

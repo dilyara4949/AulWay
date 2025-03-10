@@ -20,6 +20,7 @@ type Service interface {
 	Delete(ctx context.Context, id string) error
 	Update(ctx context.Context, req model.UpdateRouteRequest, id string) error
 	GetRoutesList(ctx context.Context, departure, destination string, date time.Time, passengers, page, pageSize int) ([]domain.Route, int, error)
+	GetAllRoutesList(ctx context.Context, page, pageSize int) ([]domain.Route, error)
 }
 
 // CreateRouteHandler
@@ -182,6 +183,32 @@ func GetRoutesListHandler(routeService Service, _ config.Config) echo.HandlerFun
 		page, pageSize := pagination.GetPageInfo(c)
 
 		routes, _, err := routeService.GetRoutesList(c.Request().Context(), departure, destination, date, passengers, page, pageSize)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "Failed to get routes", ErrDesc: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, routes)
+	}
+}
+
+// GetAllRoutesListHandler
+// @Summary Get All Routes List
+// @Description Retrieve a list of routes
+// @Tags route
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number for pagination (default: 1)"
+// @Param pageSize query int false "Page size for pagination (default: 30)"
+// @Success 200 {array} []domain.Route "List of routes"
+// @Failure 400 {object} errs.Err "Bad Request"
+// @Failure 500 {object} errs.Err "Internal Server Error"
+// @Router /api/all-routes [get]
+func GetAllRoutesListHandler(routeService Service, _ config.Config) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		page, pageSize := pagination.GetPageInfo(c)
+
+		routes, err := routeService.GetAllRoutesList(c.Request().Context(), page, pageSize)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "Failed to get routes", ErrDesc: err.Error()})
 		}

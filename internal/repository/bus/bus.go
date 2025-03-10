@@ -76,7 +76,7 @@ func (repo *Repository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (repo *Repository) GetBuses(ctx context.Context, page, pageSize int) ([]domain.Bus, error) {
+func (repo *Repository) GetBusesList(ctx context.Context, page, pageSize int) ([]domain.Bus, error) {
 	var buses []domain.Bus
 
 	offset := (page - 1) * pageSize
