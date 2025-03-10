@@ -82,3 +82,7 @@ func (service *Route) Update(ctx context.Context, req model.UpdateRouteRequest, 
 func (service *Route) GetRoutesList(ctx context.Context, departure, destination string, date time.Time, passengers, page, pageSize int) ([]domain.Route, int, error) {
 	return service.repo.GetRoutesList(ctx, departure, destination, date, passengers, page, pageSize)
 }
+
+func (service *Route) GetAllRoutesList(ctx context.Context, page, pageSize int) ([]domain.Route, error) {
+	return service.repo.GetAllRoutesList(ctx, page, pageSize)
+}

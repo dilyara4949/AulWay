@@ -3,6 +3,7 @@ package bus
 import (
 	"aulway/internal/domain"
 	"aulway/internal/handler/bus/model"
+	"aulway/internal/handler/pagination"
 	"aulway/internal/utils/config"
 	"aulway/internal/utils/errs"
 	"context"
@@ -14,6 +15,7 @@ type Service interface {
 	CreateBus(ctx context.Context, request model.CreateRequest) (*domain.Bus, error)
 	Get(ctx context.Context, id string) (*domain.Bus, error)
 	GetByNumber(ctx context.Context, number string) (*domain.Bus, error)
+	GetBusesList(ctx context.Context, page, pageSize int) ([]domain.Bus, error)
 }
 
 // CreateBusHandler
@@ -29,7 +31,6 @@ type Service interface {
 // @Router /api/buses [post]
 func CreateBusHandler(busService Service, cfg config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		//log
 		var request model.CreateRequest
 
 		if err := c.Bind(&request); err != nil {
@@ -72,5 +73,31 @@ func GetBusHandler(busService Service, cfg config.Config) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, bus)
+	}
+}
+
+// GetBusesListHandler
+// @Summary Get Buses List
+// @Description Retrieve a list of buses
+// @Tags bus
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number for pagination (default: 1)"
+// @Param pageSize query int false "Page size for pagination (default: 30)"
+// @Success 200 {array} []domain.Bus "List of buses"
+// @Failure 400 {object} errs.Err "Bad Request"
+// @Failure 500 {object} errs.Err "Internal Server Error"
+// @Router /api/buses [get]
+func GetBusesListHandler(busService Service, _ config.Config) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		page, pageSize := pagination.GetPageInfo(c)
+
+		routes, err := busService.GetBusesList(c.Request().Context(), page, pageSize)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "Failed to get buses", ErrDesc: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, routes)
 	}
 }
