@@ -170,3 +170,7 @@ func (s *TicketService) GetUpcomingTickets(ctx context.Context, userID string, n
 func (s *TicketService) GetPastTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error) {
 	return s.TicketRepo.GetPastTickets(ctx, userID, now)
 }
+
+func (s *TicketService) TicketDetails(ctx context.Context, ticketId string) (*domain.Ticket, error) {
+	return s.TicketRepo.Get(ctx, ticketId)
+}

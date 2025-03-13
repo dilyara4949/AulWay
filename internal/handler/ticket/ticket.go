@@ -20,6 +20,7 @@ type Service interface {
 	BuyTickets(ctx context.Context, userID, routeID string, paymentMethodID string, ticketAmount int) ([]domain.Ticket, error)
 	GetUpcomingTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error)
 	GetPastTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error)
+	TicketDetails(ctx context.Context, ticketId string) (*domain.Ticket, error)
 }
 
 // BuyTicketHandler processes ticket purchase requests for multiple tickets.
@@ -97,6 +98,35 @@ func GetUserTicketsHandler(service Service) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, tickets)
+	}
+}
+
+// GetTicketDetailsHandler returns a user's ticket detail
+// @Summary      Get user ticket's detail
+// @Tags         tickets
+// @Accept       json
+// @Produce      json
+// @Security BearerAuth
+// @Param        userId   path      string  true  "User ID"
+// @Param        ticketId   path      string  true  "Ticket ID"
+// @Success      200      {object}   domain.Ticket
+// @Failure      400      {object}  errs.Err
+// @Failure      500      {object}  errs.Err
+// @Router       /api/tickets/users/{userId}/{ticketId} [get]
+func GetTicketDetailsHandler(service Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if !access.Check(c, c.Get("user_id"), "userId") {
+			return c.JSON(http.StatusForbidden, errs.Err{Err: "get tickets failed", ErrDesc: "access denied"})
+		}
+
+		ticketId := c.Param("ticketId")
+
+		ticket, err := service.TicketDetails(c.Request().Context(), ticketId)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "error", ErrDesc: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, ticket)
 	}
 }
 
