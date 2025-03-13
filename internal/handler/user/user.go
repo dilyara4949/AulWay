@@ -6,8 +6,10 @@ import (
 	authModel "aulway/internal/handler/auth/model"
 	"aulway/internal/handler/pagination"
 	"aulway/internal/handler/user/model"
+	rerrs "aulway/internal/repository/errs"
 	"aulway/internal/utils/errs"
 	"context"
+	"errors"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -21,6 +23,7 @@ type Service interface {
 	ResetPassword(ctx context.Context, password authModel.ResetPassword) error
 	GetUsers(ctx context.Context, page, pageSize int) ([]domain.User, error)
 	ValidateUser(ctx context.Context, signin authModel.SigninRequest) (*domain.User, error)
+	DeleteUser(ctx context.Context, id string) error
 }
 
 // UpdateUserHandler updates user information
@@ -111,6 +114,40 @@ func GetUsersList(service Service) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, users)
+	}
+}
+
+// DeleteUserHandler deletes a user by ID.
+// @Summary      Delete a user
+// @Description  Deletes a user by their ID. Only admin or the user themselves can delete.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId   path      string  true  "User ID"
+// @Success 200 {string} string "User successfully deleted"
+// @Failure      400      {object}  errs.Err "Invalid user ID"
+// @Failure      403      {object}  errs.Err "Unauthorized"
+// @Failure      404      {object}  errs.Err "User not found"
+// @Failure      500      {object}  errs.Err "Failed to delete user"
+// @Router       /api/users/{userId} [delete]
+func DeleteUserHandler(service Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if !access.Check(c, c.Get("user_id"), "userId") {
+			return c.JSON(http.StatusForbidden, errs.Err{Err: "Delete user failed", ErrDesc: "access denied"})
+		}
+
+		userID := c.Param("userId")
+
+		err := service.DeleteUser(c.Request().Context(), userID)
+		if errors.Is(err, rerrs.ErrRecordNotFound) {
+			return c.JSON(http.StatusNotFound, errs.Err{Err: "error", ErrDesc: "User not found"})
+		}
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "error", ErrDesc: "Failed to delete user"})
+		}
+
+		return c.JSON(http.StatusOK, "user deleted")
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
+	"time"
 )
 
 type Repository struct {
@@ -60,4 +61,16 @@ func (repo *Repository) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("delete route error: %w", err)
 	}
 	return nil
+}
+
+func (repo *Repository) GetUpcomingTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error) {
+	var tickets []domain.Ticket
+	err := repo.db.WithContext(ctx).Where("user_id = ? AND created_at > ?", userID, now).Find(&tickets).Error
+	return tickets, err
+}
+
+func (repo *Repository) GetPastTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error) {
+	var tickets []domain.Ticket
+	err := repo.db.WithContext(ctx).Where("user_id = ? AND created_at <= ?", userID, now).Find(&tickets).Error
+	return tickets, err
 }

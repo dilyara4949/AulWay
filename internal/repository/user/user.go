@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -56,10 +56,15 @@ func (repo *Repository) Update(ctx context.Context, updates map[string]interface
 	return nil
 }
 
-func (repo *Repository) Delete(ctx context.Context, id uuid.UUID) error {
-	res := repo.db.WithContext(ctx).Delete(&domain.User{}, id)
+func (repo *Repository) Delete(ctx context.Context, id string) error {
+	now := time.Now()
+	res := repo.db.WithContext(ctx).
+		Model(&domain.User{}).
+		Where("id = ?", id).
+		Update("deleted_at", now)
+
 	if res.Error != nil {
-		return fmt.Errorf("delete user error: %w", res.Error)
+		return fmt.Errorf("soft delete user error: %w", res.Error)
 	}
 
 	if res.RowsAffected == 0 {
