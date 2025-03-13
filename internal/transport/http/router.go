@@ -4,10 +4,12 @@ import (
 	"aulway/internal/handler/auth"
 	"aulway/internal/handler/bus"
 	"aulway/internal/handler/healthz"
+	"aulway/internal/handler/page"
 	"aulway/internal/handler/route"
 	"aulway/internal/handler/ticket"
 	"aulway/internal/handler/user"
 	busRepostory "aulway/internal/repository/bus"
+	pageRepository "aulway/internal/repository/page"
 	paymentRepostory "aulway/internal/repository/payment"
 	routeRepostory "aulway/internal/repository/route"
 	ticketRepository "aulway/internal/repository/ticket"
@@ -60,6 +62,9 @@ func (r *Router) Build() *echo.Echo {
 	ticketRepo := ticketRepository.New(r.db)
 	ticketService := service.NewTicketService(ticketRepo, paymentRepo, routeRepo, paymentService)
 
+	pageRepo := pageRepository.New(r.db)
+	pageService := service.NewPageService(pageRepo)
+
 	timeoutWithConfig := echoMiddleware.TimeoutWithConfig(
 		echoMiddleware.TimeoutConfig{
 			Skipper:      echoMiddleware.DefaultSkipper,
@@ -104,6 +109,9 @@ func (r *Router) Build() *echo.Echo {
 	publicProtected.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
 
 	publicProtected.POST("/tickets/:routeId", ticket.BuyTicketHandler(ticketService))
+	publicProtected.GET("/tickets/users/:userId", ticket.GetUserTicketsHandler(ticketService))
 
+	publicProtected.PUT("/pages/:title", page.UpdatePageHandler(pageService))
+	adminProtected.GET("/pages/:title", page.GetPageHandler(pageService))
 	return e
 }

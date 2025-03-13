@@ -136,3 +136,7 @@ func (service *User) ResetPassword(ctx context.Context, req auth.ResetPassword) 
 func (service *User) GetUsers(ctx context.Context, page, pageSize int) ([]domain.User, error) {
 	return service.repo.GetUsers(ctx, page, pageSize)
 }
+
+func (service *User) DeleteUser(ctx context.Context, id string) error {
+	return service.repo.Delete(ctx, id)
+}

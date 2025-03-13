@@ -6,13 +6,15 @@ import (
 	routeRepo "aulway/internal/repository/route"
 	ticketRepo "aulway/internal/repository/ticket"
 	"aulway/internal/utils/errs"
+	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/skip2/go-qrcode"
-	"os"
-	"path/filepath"
+	"image/jpeg"
 	"time"
 )
 
@@ -140,22 +142,31 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 }
 
 func generateQRCode(ticket *domain.Ticket) (string, error) {
-	qrDir := "qrcodes"
-	qrPath := filepath.Join(qrDir, fmt.Sprintf("%s.png", ticket.ID))
-
-	// Ensure directory exists
-	if err := os.MkdirAll(qrDir, os.ModePerm); err != nil {
-		return "", fmt.Errorf("failed to create QR code directory: %w", err)
-	}
-
-	// QR code content - URL for ticket PDF download
-	qrContent := fmt.Sprintf("https://localhos:8080/api/tickets/%s/download", ticket.ID)
-
-	// Generate and save the QR code
-	err := qrcode.WriteFile(qrContent, qrcode.Medium, 256, qrPath)
+	ticketJSON, err := json.Marshal(ticket)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate QR code: %w", err)
+		return "", err
 	}
 
-	return qrPath, nil
+	qr, err := qrcode.New(string(ticketJSON), qrcode.Medium)
+	if err != nil {
+		return "", err
+	}
+
+	img := qr.Image(183)
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, nil); err != nil {
+		return "", err
+	}
+
+	qrBase64 := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	return qrBase64, nil
+}
+
+func (s *TicketService) GetUpcomingTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error) {
+	return s.TicketRepo.GetUpcomingTickets(ctx, userID, now)
+}
+
+func (s *TicketService) GetPastTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error) {
+	return s.TicketRepo.GetPastTickets(ctx, userID, now)
 }
