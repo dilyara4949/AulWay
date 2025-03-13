@@ -96,6 +96,8 @@ func (r *Router) Build() *echo.Echo {
 	publicProtected.PUT("/users/:userId", user.UpdateUserHandler(userService))
 	publicProtected.GET("/users/:userId", user.GetUserByIdHandler(userService))
 	adminProtected.GET("/users", user.GetUsersList(userService))
+	publicProtected.DELETE("/users/:userId", user.DeleteUserHandler(userService))
+	publicProtected.PUT("/users/:userId/change-password", user.ChangePasswordHandler(userService))
 
 	adminProtected.GET("/buses", bus.GetBusesListHandler(busService, r.c))
 	adminProtected.POST("/buses", bus.CreateBusHandler(busService, r.c))

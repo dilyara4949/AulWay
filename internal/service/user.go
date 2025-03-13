@@ -110,7 +110,7 @@ func (service *User) UpdateUser(ctx context.Context, req model.UpdateUserRequest
 	return usr, nil
 }
 
-func (service *User) ResetPassword(ctx context.Context, req auth.ResetPassword) error {
+func (service *User) ResetPassword(ctx context.Context, req model.ResetPasswordRequest, requirePasswordReset bool) error {
 	usr, err := service.ValidateUser(ctx, auth.SigninRequest{
 		Email:    req.Email,
 		Password: req.OldPassword,
@@ -129,7 +129,7 @@ func (service *User) ResetPassword(ctx context.Context, req auth.ResetPassword) 
 		return fmt.Errorf("generate password error: %w", err)
 	}
 
-	err = service.repo.UpdatePassword(ctx, usr.ID, string(encryptedPassword), false)
+	err = service.repo.UpdatePassword(ctx, usr.ID, string(encryptedPassword), requirePasswordReset)
 	return err
 }
 
