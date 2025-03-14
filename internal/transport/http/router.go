@@ -48,7 +48,7 @@ func (r *Router) Build() *echo.Echo {
 	userRepo := userRepository.NewRepository(r.db)
 	userService := service.NewUserService(userRepo)
 
-	authService := service.NewAuthService(userRepo)
+	authService := service.NewAuthService(userRepo, nil)
 
 	busRepo := busRepostory.New(r.db)
 	busService := service.NewBusService(busRepo)

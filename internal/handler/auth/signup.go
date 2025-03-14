@@ -22,6 +22,40 @@ const (
 
 type Service interface {
 	CreateAccessToken(ctx context.Context, user domain.User, jwtSecret string, expiry int) (string, error)
+	SendResetCode(ctx context.Context, email string) error
+	VerifyResetCode(ctx context.Context, req model.VerifyResetCodeRequest) error
+}
+
+func ForgotPasswordHandler(svc Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var req model.ForgotPasswordRequest
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "Invalid request", ErrDesc: err.Error()})
+		}
+
+		err := svc.SendResetCode(c.Request().Context(), req.Email)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, uerrs.Err{Err: "Reset code sent to email"})
+	}
+}
+
+func ResetPasswordHandler(svc Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var req model.VerifyResetCodeRequest
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "Invalid request"})
+		}
+
+		err := svc.VerifyResetCode(c.Request().Context(), req)
+		if err != nil {
+			return c.JSON(http.StatusUnauthorized, uerrs.Err{Err: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, uerrs.Err{Err: "Password reset successful"})
+	}
 }
 
 // SignupHandler
