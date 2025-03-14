@@ -29,3 +29,13 @@ type SignupResponse struct {
 	AccessToken string             `json:"access_token"`
 	User        model.UserResponse `json:"user"`
 }
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type VerifyResetCodeRequest struct {
+	Email       string `json:"email" validate:"required,email"`
+	Code        string `json:"code" validate:"required,len=6"`
+	NewPassword string `json:"new_password" validate:"required"`
+}

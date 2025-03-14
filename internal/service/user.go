@@ -129,7 +129,7 @@ func (service *User) ResetPassword(ctx context.Context, req model.ResetPasswordR
 		return fmt.Errorf("generate password error: %w", err)
 	}
 
-	err = service.repo.UpdatePassword(ctx, usr.ID, string(encryptedPassword), requirePasswordReset)
+	err = service.repo.UpdatePassword(ctx, usr.Email, string(encryptedPassword), requirePasswordReset)
 	return err
 }
 

@@ -62,7 +62,6 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 	var tickets []domain.Ticket
 
 	for i := 0; i < quantity; i++ {
-		// Create ticket
 		ticketId, _ := uuid.NewV7()
 		ticket := domain.Ticket{
 			ID:            ticketId.String(),
@@ -74,18 +73,18 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 			CreatedAt:     time.Now(),
 		}
 
-		err = s.TicketRepo.Create(ctx, tx, &ticket)
-		if err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to create ticket: %w", err)
-		}
-
 		qrCodePath, err := generateQRCode(&ticket)
 		if err != nil {
 			tx.Rollback()
 			return nil, fmt.Errorf("failed to generate QR code: %w", err)
 		}
 		ticket.QRCode = qrCodePath
+
+		err = s.TicketRepo.Create(ctx, tx, &ticket)
+		if err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("failed to create ticket: %w", err)
+		}
 
 		transactionId, _ := uuid.NewV7()
 		success, stripeErr := s.PaymentProcessor.ProcessPayment(ctx, userID, ticket.Price, paymentMethodID)
@@ -98,7 +97,6 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 			return nil, fmt.Errorf("payment was not successful")
 		}
 
-		// Create payment record
 		paymentId, _ := uuid.NewV7()
 		payment := &domain.Payment{
 			ID:            paymentId.String(),
@@ -125,6 +123,9 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 			tx.Rollback()
 			return nil, fmt.Errorf("failed to update ticket: %w", err)
 		}
+
+		ticket.Status = "approved"
+		ticket.PaymentStatus = "paid"
 
 		tickets = append(tickets, ticket)
 	}

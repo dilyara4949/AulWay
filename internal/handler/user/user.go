@@ -26,6 +26,43 @@ type Service interface {
 	DeleteUser(ctx context.Context, id string) error
 }
 
+// ChangePasswordHandler change user password
+// @Summary      Change password
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId   path      string  true  "User ID"
+// @Success 200 {string} string "password change was successful"
+// @Failure      400      {object}  errs.Err
+// @Failure      500      {object}  errs.Err
+// @Router       /api/users/{userId}/change-password [put]
+func ChangePasswordHandler(service Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if !access.Check(c, c.Get("user_id"), "userId") {
+			return c.JSON(http.StatusForbidden, errs.Err{Err: "Update user failed", ErrDesc: "access denied"})
+		}
+
+		var req model.ResetPasswordRequest
+
+		err := c.Bind(&req)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, errs.Err{Err: "error at binding request body", ErrDesc: err.Error()})
+		}
+
+		if req.NewPassword == "" || req.OldPassword == "" || req.Email == "" {
+			return c.JSON(http.StatusBadRequest, errs.Err{Err: "request body is incorrect"})
+		}
+
+		err = service.ResetPassword(c.Request().Context(), req, false)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "reset password failed", ErrDesc: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, "password change was successful")
+	}
+}
+
 // UpdateUserHandler updates user information
 // @Summary Update user details
 // @Description Updates user information based on the given user ID
@@ -148,43 +185,6 @@ func DeleteUserHandler(service Service) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, "user deleted")
-	}
-}
-
-// ChangePasswordHandler change user password
-// @Summary      Chane password
-// @Tags         users
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        userId   path      string  true  "User ID"
-// @Success 200 {string} string "password change was successful"
-// @Failure      400      {object}  errs.Err
-// @Failure      500      {object}  errs.Err
-// @Router       /api/users/{userId}/change-password [put]
-func ChangePasswordHandler(service Service) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		if !access.Check(c, c.Get("user_id"), "userId") {
-			return c.JSON(http.StatusForbidden, errs.Err{Err: "Update user failed", ErrDesc: "access denied"})
-		}
-
-		var req model.ResetPasswordRequest
-
-		err := c.Bind(&req)
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, errs.Err{Err: "error at binding request body", ErrDesc: err.Error()})
-		}
-
-		if req.NewPassword == "" || req.OldPassword == "" || req.Email == "" {
-			return c.JSON(http.StatusBadRequest, errs.Err{Err: "request body is incorrect"})
-		}
-
-		err = service.ResetPassword(c.Request().Context(), req, false)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "reset password failed", ErrDesc: err.Error()})
-		}
-
-		return c.JSON(http.StatusOK, "password change was successful")
 	}
 }
 

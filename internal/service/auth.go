@@ -2,10 +2,14 @@ package service
 
 import (
 	"aulway/internal/domain"
+	"aulway/internal/handler/auth/model"
 	"aulway/internal/repository/user"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/redis/go-redis/v9"
+	"math/rand"
 	"regexp"
 	"strings"
 	"time"
@@ -18,14 +22,60 @@ type Claims struct {
 }
 
 type Auth struct {
-	repo user.Repository
+	repo  user.Repository
+	redis *redis.Client
 }
 
-func NewAuthService(userRepo user.Repository) *Auth {
+func (s *Auth) VerifyResetCode(ctx context.Context, req model.VerifyResetCodeRequest) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func NewAuthService(userRepo user.Repository, redis *redis.Client) *Auth {
 	return &Auth{
-		repo: userRepo,
+		repo:  userRepo,
+		redis: redis,
 	}
 }
+
+func (s *Auth) SendResetCode(ctx context.Context, email string) error {
+	usr, err := s.repo.GetByEmail(ctx, email)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	code := fmt.Sprintf("%06d", rand.Intn(1000000))
+
+	err = s.redis.Set(ctx, "reset_code:"+email, code, 10*time.Minute).Err()
+	if err != nil {
+		return errors.New("failed to store reset code")
+	}
+
+	message := fmt.Sprintf("Your password reset code is: %s. It will expire in 10 minutes.", code)
+	return SendEmail(usr.Email, "Password Reset Code", message)
+}
+
+//func (s *Auth) VerifyResetCode(ctx context.Context, req model.VerifyResetCodeRequest) error {
+//	storedCode, err := s.redis.Get(ctx, "reset_code:"+req.Email).Result()
+//	if err == redis.Nil {
+//		return errors.New("reset code expired or invalid")
+//	} else if err != nil {
+//		return err
+//	}
+//
+//	if storedCode != req.Code {
+//		return errors.New("invalid reset code")
+//	}
+//
+//	err = s.repo.UpdatePassword(ctx, req.Email, req.NewPassword, false)
+//	if err != nil {
+//		return errors.New("failed to reset password")
+//	}
+//
+//	s.redis.Del(ctx, "reset_code:"+req.Email)
+//
+//	return nil
+//}
 
 func (service *Auth) CreateAccessToken(ctx context.Context, user domain.User, jwtSecret string, expiry int) (string, error) {
 	expirationTime := time.Now().Add(time.Duration(expiry) * time.Hour)
