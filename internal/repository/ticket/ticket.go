@@ -38,7 +38,7 @@ func (repo *Repository) Get(ctx context.Context, id string) (*domain.Ticket, err
 			return nil, errs.ErrRecordNotFound
 		}
 
-		return nil, fmt.Errorf("get bus error: %w", err)
+		return nil, fmt.Errorf("get ticket error: %w", err)
 	}
 
 	return ticket, nil
@@ -65,12 +65,18 @@ func (repo *Repository) Delete(ctx context.Context, id string) error {
 
 func (repo *Repository) GetUpcomingTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error) {
 	var tickets []domain.Ticket
-	err := repo.db.WithContext(ctx).Where("user_id = ? AND created_at > ?", userID, now).Find(&tickets).Error
+	err := repo.db.WithContext(ctx).
+		Joins("JOIN routes ON routes.id = tickets.route_id").
+		Where("tickets.user_id = ? AND routes.start_date > ?", userID, now).
+		Find(&tickets).Error
 	return tickets, err
 }
 
 func (repo *Repository) GetPastTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error) {
 	var tickets []domain.Ticket
-	err := repo.db.WithContext(ctx).Where("user_id = ? AND created_at <= ?", userID, now).Find(&tickets).Error
+	err := repo.db.WithContext(ctx).
+		Joins("JOIN routes ON routes.id = tickets.route_id").
+		Where("tickets.user_id = ? AND routes.start_date <= ?", userID, now).
+		Find(&tickets).Error
 	return tickets, err
 }
