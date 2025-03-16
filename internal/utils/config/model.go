@@ -19,4 +19,23 @@ type Config struct {
 	AccessTokenExpire int
 	HeaderTimeout     time.Duration
 	Postgres
+	Redis
+	SMTP
+}
+
+type Redis struct {
+	Host     string
+	Port     string
+	Password string
+	Timeout  int
+	PoolSize int
+	Database int
+	Duration time.Duration
+}
+
+type SMTP struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
 }

@@ -46,3 +46,7 @@ func (service *Bus) Get(ctx context.Context, id string) (*domain.Bus, error) {
 func (service *Bus) GetBusesList(ctx context.Context, page, pageSize int) ([]domain.Bus, error) {
 	return service.repo.GetBusesList(ctx, page, pageSize)
 }
+
+func (service *Bus) DeleteBus(ctx context.Context, id string) error {
+	return service.repo.Delete(ctx, id)
+}

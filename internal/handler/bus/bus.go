@@ -16,6 +16,7 @@ type Service interface {
 	Get(ctx context.Context, id string) (*domain.Bus, error)
 	GetByNumber(ctx context.Context, number string) (*domain.Bus, error)
 	GetBusesList(ctx context.Context, page, pageSize int) ([]domain.Bus, error)
+	DeleteBus(ctx context.Context, id string) error
 }
 
 // CreateBusHandler
@@ -99,5 +100,28 @@ func GetBusesListHandler(busService Service, _ config.Config) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, routes)
+	}
+}
+
+// DeleteBusHandler
+// @Summary Delete bus by id
+// @Tags bus
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param busId path string true "Bus ID"
+// @Success 200 {array} string "bus deleted"
+// @Failure 500 {object} errs.Err "Internal Server Error"
+// @Router /api/buses/{busId} [delete]
+func DeleteBusHandler(busService Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		busId := c.Param("busId")
+
+		err := busService.DeleteBus(c.Request().Context(), busId)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "Failed to delete bus", ErrDesc: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, "bus deleted")
 	}
 }

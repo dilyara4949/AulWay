@@ -8,11 +8,13 @@ import (
 	"aulway/internal/utils/config"
 	uerrs "aulway/internal/utils/errs"
 	"context"
+	"errors"
 	"firebase.google.com/go/auth"
 	"github.com/labstack/echo/v4"
 	"log"
 	"log/slog"
 	"net/http"
+	"regexp"
 )
 
 const (
@@ -26,6 +28,16 @@ type Service interface {
 	VerifyResetCode(ctx context.Context, req model.VerifyResetCodeRequest) error
 }
 
+// ForgotPasswordHandler
+// @Summary Forgot password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body model.ForgotPasswordRequest true "forgot password"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} errs.Err "Bad Request - Invalid request body"
+// @Failure 500 {object} errs.Err "Internal Server Error"
+// @Router /auth/forgot-password [post]
 func ForgotPasswordHandler(svc Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req model.ForgotPasswordRequest
@@ -38,11 +50,21 @@ func ForgotPasswordHandler(svc Service) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: err.Error()})
 		}
 
-		return c.JSON(http.StatusOK, uerrs.Err{Err: "Reset code sent to email"})
+		return c.JSON(http.StatusOK, map[string]string{"message": "Reset code sent to email"})
 	}
 }
 
-func ResetPasswordHandler(svc Service) echo.HandlerFunc {
+// VerifyForgotPasswordHandler
+// @Summary verify forgot password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body model.VerifyResetCodeRequest true "required"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} errs.Err "Bad Request - Invalid request body"
+// @Failure 500 {object} errs.Err "Internal Server Error"
+// @Router /auth/forgot-password/verify [post]
+func VerifyForgotPasswordHandler(svc Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req model.VerifyResetCodeRequest
 		if err := c.Bind(&req); err != nil {
@@ -54,7 +76,7 @@ func ResetPasswordHandler(svc Service) echo.HandlerFunc {
 			return c.JSON(http.StatusUnauthorized, uerrs.Err{Err: err.Error()})
 		}
 
-		return c.JSON(http.StatusOK, uerrs.Err{Err: "Password reset successful"})
+		return c.JSON(http.StatusOK, map[string]string{"message": "Password reset successful"})
 	}
 }
 
@@ -80,6 +102,14 @@ func SignupHandler(authService Service, userService user.Service, cfg config.Con
 
 		if req.Password == "" || req.Email == "" {
 			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "signup failed", ErrDesc: "fields cannot be empty"})
+		}
+
+		if err = ValidateEmail(req.Email); err != nil {
+			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "signup failed", ErrDesc: err.Error()})
+		}
+
+		if err = ValidatePassword(req.Password); err != nil {
+			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "signup failed", ErrDesc: err.Error()})
 		}
 
 		usr, err := userService.CreateUser(c.Request().Context(), req)
@@ -144,24 +174,19 @@ func AssignRole(authClient *auth.Client, uid string, role string) error {
 	return nil
 }
 
-//func ResetPasswordHandler(userService user.Service) echo.HandlerFunc {
-//	return func(c echo.Context) error {
-//		var req model.ResetPassword
-//
-//		err := c.Bind(&req)
-//		if err != nil {
-//			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "error at binding request body", ErrDesc: err.Error()})
-//		}
-//
-//		if req.NewPassword == "" || req.OldPassword == "" || req.Email == "" {
-//			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: errs.ErrInvalidEmailPassword})
-//		}
-//
-//		err = userService.ResetPassword(c.Request().Context(), req)
-//		if err != nil {
-//			return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "Failed to reset password", ErrDesc: err.Error()})
-//		}
-//
-//		return c.JSON(http.StatusOK, "reset password succeeded")
-//	}
-//}
+func ValidateEmail(email string) error {
+	re := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+
+	if !re.MatchString(email) {
+		return errors.New("invalid email format")
+	}
+
+	return nil
+}
+
+func ValidatePassword(password string) error {
+	if len(password) < 8 {
+		return errors.New("password must be at least 8 characters long")
+	}
+	return nil
+}

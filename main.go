@@ -2,7 +2,7 @@ package main
 
 import (
 	"aulway/internal/database/postgres"
-	"aulway/internal/firebase"
+	"aulway/internal/database/redis"
 	xtransport "aulway/internal/transport/http"
 	"aulway/internal/utils/config"
 	"context"
@@ -28,7 +28,7 @@ func main() {
 	cfg, err := config.NewConfig()
 	if err != nil {
 		slog.Error("error getting config:", "error", err.Error())
-		return
+		panic(err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -37,7 +37,7 @@ func main() {
 	database, err := postgres.Connect(ctx, cfg.Postgres)
 	if err != nil {
 		slog.Error("database connection failed:", "error", err.Error())
-		return
+		panic(err)
 	}
 
 	slog.Info("Database connection success")
@@ -45,15 +45,16 @@ func main() {
 	sqlDB, err := database.DB()
 	if err != nil {
 		slog.Error("failed to get sql.DB from gorm.DB:", "error", err.Error())
-		return
+		panic(err)
 	}
 
-	authClient, err := firebase.InitializeFirebase()
+	redis, err := redis.Connect(ctx, cfg.Redis)
 	if err != nil {
-		log.Fatalf("Failed to initialize Firebase: %v", err)
+		slog.Error("redis connection failed:", "error", err.Error())
+		panic(err)
 	}
 
-	router := xtransport.NewRouter(cfg, database, authClient).Build()
+	router := xtransport.NewRouter(cfg, database, redis).Build()
 
 	var g run.Group
 	{
@@ -71,10 +72,6 @@ func main() {
 					slog.Error("error closing database", "error", dbErr.Error())
 				}
 			}()
-			//e := router.Shutdown(ctxShutDown)
-			//if e != nil {
-			//	os.Exit(1)
-			//}
 		})
 	}
 	{

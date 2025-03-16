@@ -130,6 +130,22 @@ definitions:
     - price
     - start_date
     type: object
+  model.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  model.ResetPasswordRequest:
+    properties:
+      email:
+        type: string
+      new_password:
+        type: string
+      old_password:
+        type: string
+    type: object
   model.SigninRequest:
     properties:
       email:
@@ -217,6 +233,19 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  model.VerifyResetCodeRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+      new_password:
+        type: string
+    required:
+    - code
+    - email
+    - new_password
     type: object
 info:
   contact: {}
@@ -331,6 +360,33 @@ paths:
       tags:
       - bus
   /api/buses/{busId}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Bus ID
+        in: path
+        name: busId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: bus deleted
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      security:
+      - BearerAuth: []
+      summary: Delete bus by id
+      tags:
+      - bus
     get:
       consumes:
       - application/json
@@ -892,6 +948,12 @@ paths:
         name: userId
         required: true
         type: string
+      - description: change password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ResetPasswordRequest'
       produces:
       - application/json
       responses:
@@ -909,9 +971,71 @@ paths:
             $ref: '#/definitions/errs.Err'
       security:
       - BearerAuth: []
-      summary: Chane password
+      summary: Change password
       tags:
       - users
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: forgot password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request - Invalid request body
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: Forgot password
+      tags:
+      - auth
+  /auth/forgot-password/verify:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: required
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.VerifyResetCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request - Invalid request body
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: verify forgot password
+      tags:
+      - auth
   /auth/signin:
     post:
       consumes:
