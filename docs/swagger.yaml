@@ -234,6 +234,15 @@ definitions:
       updated_at:
         type: string
     type: object
+  model.VerifyEmailRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+    type: object
   model.VerifyResetCodeRequest:
     properties:
       code:
@@ -1078,7 +1087,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Register a new user and return an access token.
+      description: Register a new user and send verification code.
       parameters:
       - description: Signup Request Body
         in: body
@@ -1090,7 +1099,37 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: response
+          schema:
+            type: string
+        "400":
+          description: Bad Request - Invalid request body
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: User Signup
+      tags:
+      - auth
+  /auth/signup/verify:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user and verify code.
+      parameters:
+      - description: VerifyEmail Request Body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: response
           schema:
             $ref: '#/definitions/model.SignupResponse'
         "400":
@@ -1101,7 +1140,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/errs.Err'
-      summary: User Signup
+      summary: User Signup Verification
       tags:
       - auth
 securityDefinitions:
