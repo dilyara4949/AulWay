@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
+	"strings"
 	"time"
 )
 
@@ -78,5 +79,43 @@ func (repo *Repository) GetPastTickets(ctx context.Context, userID string, now t
 		Joins("JOIN routes ON routes.id = tickets.route_id").
 		Where("tickets.user_id = ? AND routes.start_date <= ?", userID, now).
 		Find(&tickets).Error
+	return tickets, err
+}
+
+func (repo *Repository) GetTicketsSortBy(
+	ctx context.Context,
+	sortBy, ord string,
+	page, pageSize int,
+) ([]domain.Ticket, error) {
+	var tickets []domain.Ticket
+
+	allowedSortFields := map[string]string{
+		"user":           "tickets.user_id",
+		"start_date":     "routes.start_date",
+		"route":          "routes.id",
+		"price":          "tickets.price",
+		"status":         "tickets.status",
+		"payment_status": "tickets.payment_status",
+	}
+
+	column, ok := allowedSortFields[sortBy]
+	if !ok {
+		column = "tickets.user_id"
+	}
+
+	order := "ASC"
+	if strings.ToLower(ord) == "desc" {
+		order = "DESC"
+	}
+
+	offset := (page - 1) * pageSize
+
+	err := repo.db.WithContext(ctx).
+		Joins("JOIN routes ON routes.id = tickets.route_id").
+		Order(column + " " + order).
+		Limit(pageSize).
+		Offset(offset).
+		Find(&tickets).Error
+
 	return tickets, err
 }

@@ -1,25 +1,12 @@
 package service
 
 import (
+	"aulway/internal/utils/config"
 	"fmt"
 	"net/smtp"
 )
 
-type SMTPConfig struct {
-	Host     string
-	Port     string
-	Username string
-	Password string
-}
-
-func SendEmail(to, subject, body string) error {
-	smtpConfig := SMTPConfig{
-		Host:     "smtp.gmail.com",
-		Port:     "587",
-		Username: "your-email@example.com",
-		Password: "your-email-password",
-	}
-
+func SendEmail(to, subject, body string, smtpConfig config.SMTP) error {
 	from := smtpConfig.Username
 	msg := []byte(fmt.Sprintf("Subject: %s\r\n\r\n%s", subject, body))
 

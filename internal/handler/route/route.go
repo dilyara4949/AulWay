@@ -2,7 +2,6 @@ package route
 
 import (
 	"aulway/internal/domain"
-	busServ "aulway/internal/handler/bus"
 	"aulway/internal/handler/pagination"
 	"aulway/internal/handler/route/model"
 	"aulway/internal/utils/config"
@@ -23,6 +22,10 @@ type Service interface {
 	GetAllRoutesList(ctx context.Context, page, pageSize int) ([]domain.Route, error)
 }
 
+type BusService interface {
+	Get(ctx context.Context, id string) (*domain.Bus, error)
+}
+
 // CreateRouteHandler
 // @Summary Create Route
 // @Description Create a new bus route
@@ -35,7 +38,7 @@ type Service interface {
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
 // @Router /api/routes [post]
-func CreateRouteHandler(routeService Service, busService busServ.Service, _ config.Config) echo.HandlerFunc {
+func CreateRouteHandler(routeService Service, busService BusService, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var request model.CreateRouteRequest
 
@@ -69,20 +72,27 @@ func CreateRouteHandler(routeService Service, busService busServ.Service, _ conf
 // @Produce json
 // @Security BearerAuth
 // @Param routeId path string true "Route ID"
-// @Success 200 {object} domain.Route "Success"
+// @Success 200 {object} model.RouteResponse "Success"
 // @Failure 400 {object} errs.Err "Bad Request"
 // @Failure 500 {object} errs.Err "Internal Server Error"
 // @Router /api/routes/{routeId} [get]
-func GetRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc {
+func GetRouteHandler(routeService Service, busService BusService, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		routeId := c.Param("routeId")
 
-		bus, err := routeService.GetRoute(c.Request().Context(), routeId)
+		route, err := routeService.GetRoute(c.Request().Context(), routeId)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "Failed to get bus", ErrDesc: err.Error()})
 		}
 
-		return c.JSON(http.StatusOK, bus)
+		bus, err := busService.Get(c.Request().Context(), route.BusId)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, errs.Err{Err: "Get bus failed", ErrDesc: err.Error()})
+		}
+
+		response := model.MapRouteResponse(*route, *bus)
+
+		return c.JSON(http.StatusOK, response)
 	}
 }
 

@@ -33,6 +33,7 @@ type Service interface {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        userId   path      string  true  "User ID"
+// @Param request body model.ResetPasswordRequest true "change password"
 // @Success 200 {string} string "password change was successful"
 // @Failure      400      {object}  errs.Err
 // @Failure      500      {object}  errs.Err

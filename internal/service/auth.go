@@ -4,11 +4,13 @@ import (
 	"aulway/internal/domain"
 	"aulway/internal/handler/auth/model"
 	"aulway/internal/repository/user"
+	"aulway/internal/utils/config"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/crypto/bcrypt"
 	"math/rand"
 	"regexp"
 	"strings"
@@ -24,17 +26,14 @@ type Claims struct {
 type Auth struct {
 	repo  user.Repository
 	redis *redis.Client
+	smpt  config.SMTP
 }
 
-func (s *Auth) VerifyResetCode(ctx context.Context, req model.VerifyResetCodeRequest) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func NewAuthService(userRepo user.Repository, redis *redis.Client) *Auth {
+func NewAuthService(userRepo user.Repository, redis *redis.Client, smtp config.SMTP) *Auth {
 	return &Auth{
 		repo:  userRepo,
 		redis: redis,
+		smpt:  smtp,
 	}
 }
 
@@ -51,33 +50,38 @@ func (s *Auth) SendResetCode(ctx context.Context, email string) error {
 		return errors.New("failed to store reset code")
 	}
 
-	message := fmt.Sprintf("Your password reset code is: %s. It will expire in 10 minutes.", code)
-	return SendEmail(usr.Email, "Password Reset Code", message)
+	message := fmt.Sprintf("Aulway\r\nYour password reset code is: %s. It will expire in 10 minutes.", code)
+	return SendEmail(usr.Email, "Password Reset Code", message, s.smpt)
 }
 
-//func (s *Auth) VerifyResetCode(ctx context.Context, req model.VerifyResetCodeRequest) error {
-//	storedCode, err := s.redis.Get(ctx, "reset_code:"+req.Email).Result()
-//	if err == redis.Nil {
-//		return errors.New("reset code expired or invalid")
-//	} else if err != nil {
-//		return err
-//	}
-//
-//	if storedCode != req.Code {
-//		return errors.New("invalid reset code")
-//	}
-//
-//	err = s.repo.UpdatePassword(ctx, req.Email, req.NewPassword, false)
-//	if err != nil {
-//		return errors.New("failed to reset password")
-//	}
-//
-//	s.redis.Del(ctx, "reset_code:"+req.Email)
-//
-//	return nil
-//}
+func (s *Auth) VerifyResetCode(ctx context.Context, req model.VerifyResetCodeRequest) error {
+	storedCode, err := s.redis.Get(ctx, "reset_code:"+req.Email).Result()
+	if err == redis.Nil {
+		return errors.New("reset code invalid or email not found")
+	} else if err != nil {
+		return err
+	}
 
-func (service *Auth) CreateAccessToken(ctx context.Context, user domain.User, jwtSecret string, expiry int) (string, error) {
+	if storedCode != req.Code {
+		return errors.New("invalid reset code")
+	}
+
+	encryptedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(req.NewPassword),
+		bcrypt.DefaultCost,
+	)
+
+	err = s.repo.UpdatePassword(ctx, req.Email, string(encryptedPassword), false)
+	if err != nil {
+		return errors.New("failed to reset password")
+	}
+
+	s.redis.Del(ctx, "reset_code:"+req.Email)
+
+	return nil
+}
+
+func (s *Auth) CreateAccessToken(ctx context.Context, user domain.User, jwtSecret string, expiry int) (string, error) {
 	expirationTime := time.Now().Add(time.Duration(expiry) * time.Hour)
 	claims := &Claims{
 		UserID: user.ID,
@@ -97,7 +101,7 @@ func (service *Auth) CreateAccessToken(ctx context.Context, user domain.User, jw
 	return accessToken, nil
 }
 
-func (service *Auth) ValidatePhone(phone string) error {
+func (s *Auth) ValidatePhone(phone string) error {
 	phone = strings.ReplaceAll(phone, " ", "")
 	phone = strings.ReplaceAll(phone, "-", "")
 
@@ -105,26 +109,6 @@ func (service *Auth) ValidatePhone(phone string) error {
 
 	if !re.MatchString(phone) {
 		return errors.New("invalid phone number format")
-	}
-
-	return nil
-}
-
-func ValidateEmail(email string) error {
-	re := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-
-	if !re.MatchString(email) {
-		return errors.New("invalid email format")
-	}
-
-	return nil
-}
-
-func ValidatePassword(password string) error {
-	re := regexp.MustCompile(`^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$`)
-
-	if !re.MatchString(password) {
-		return errors.New("password must be at least 8 characters long and include 1 uppercase, 1 lowercase, 1 number, and 1 special character")
 	}
 
 	return nil

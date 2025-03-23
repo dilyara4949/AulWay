@@ -175,3 +175,11 @@ func (s *TicketService) GetPastTickets(ctx context.Context, userID string, now t
 func (s *TicketService) TicketDetails(ctx context.Context, ticketId string) (*domain.Ticket, error) {
 	return s.TicketRepo.Get(ctx, ticketId)
 }
+
+func (s *TicketService) GetTicketsSortBy(
+	ctx context.Context,
+	sortBy, ord string,
+	page, pageSize int,
+) ([]domain.Ticket, error) {
+	return s.TicketRepo.GetTicketsSortBy(ctx, sortBy, ord, page, pageSize)
+}

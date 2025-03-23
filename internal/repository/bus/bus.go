@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -63,8 +62,8 @@ func (repo *Repository) Update(ctx context.Context, bus *domain.Bus) error {
 	return nil
 }
 
-func (repo *Repository) Delete(ctx context.Context, id uuid.UUID) error {
-	res := repo.db.WithContext(ctx).Delete(&domain.Bus{}, id)
+func (repo *Repository) Delete(ctx context.Context, id string) error {
+	res := repo.db.WithContext(ctx).Where("id = ?", id).Delete(&domain.Bus{})
 	if res.Error != nil {
 		return uerror.Err{ErrDesc: "delete bus error: %w", Err: res.Error.Error()}
 	}

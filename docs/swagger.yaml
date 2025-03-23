@@ -130,6 +130,45 @@ definitions:
     - price
     - start_date
     type: object
+  model.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  model.ResetPasswordRequest:
+    properties:
+      email:
+        type: string
+      new_password:
+        type: string
+      old_password:
+        type: string
+    type: object
+  model.RouteResponse:
+    properties:
+      available_seats:
+        type: integer
+      bus_id:
+        type: string
+      bus_number:
+        type: string
+      bus_total_seats:
+        type: integer
+      departure:
+        type: string
+      destination:
+        type: string
+      end_date:
+        type: string
+      id:
+        type: string
+      price:
+        type: integer
+      start_date:
+        type: string
+    type: object
   model.SigninRequest:
     properties:
       email:
@@ -217,6 +256,28 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  model.VerifyEmailRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  model.VerifyResetCodeRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+      new_password:
+        type: string
+    required:
+    - code
+    - email
+    - new_password
     type: object
 info:
   contact: {}
@@ -331,6 +392,33 @@ paths:
       tags:
       - bus
   /api/buses/{busId}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Bus ID
+        in: path
+        name: busId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: bus deleted
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      security:
+      - BearerAuth: []
+      summary: Delete bus by id
+      tags:
+      - bus
     get:
       consumes:
       - application/json
@@ -476,7 +564,7 @@ paths:
           schema:
             items:
               items:
-                $ref: '#/definitions/domain.Route'
+                $ref: '#/definitions/model.RouteResponse'
               type: array
             type: array
         "400":
@@ -570,7 +658,7 @@ paths:
         "200":
           description: Success
           schema:
-            $ref: '#/definitions/domain.Route'
+            $ref: '#/definitions/model.RouteResponse'
         "400":
           description: Bad Request
           schema:
@@ -620,6 +708,51 @@ paths:
       summary: Update Route
       tags:
       - route
+  /api/tickets:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve tickets sorted by user, start date, route, price, status,
+        or payment status with pagination.
+      parameters:
+      - description: Sort by field (user, start_date, route, price, status, payment_status)
+        in: query
+        name: sort_by
+        required: true
+        type: string
+      - default: asc
+        description: Sorting order (asc or desc)
+        in: query
+        name: order
+        type: string
+      - default: 1
+        description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - default: 30
+        description: 'Number of tickets per page (default: 30)'
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of tickets
+          schema:
+            items:
+              $ref: '#/definitions/domain.Ticket'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      security:
+      - BearerAuth: []
+      summary: Get sorted and paginated tickets
+      tags:
+      - tickets
   /api/tickets/{routeId}:
     post:
       consumes:
@@ -892,6 +1025,12 @@ paths:
         name: userId
         required: true
         type: string
+      - description: change password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ResetPasswordRequest'
       produces:
       - application/json
       responses:
@@ -909,9 +1048,71 @@ paths:
             $ref: '#/definitions/errs.Err'
       security:
       - BearerAuth: []
-      summary: Chane password
+      summary: Change password
       tags:
       - users
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: forgot password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request - Invalid request body
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: Forgot password
+      tags:
+      - auth
+  /auth/forgot-password/verify:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: required
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.VerifyResetCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request - Invalid request body
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: verify forgot password
+      tags:
+      - auth
   /auth/signin:
     post:
       consumes:
@@ -954,7 +1155,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Register a new user and return an access token.
+      description: Register a new user and send verification code.
       parameters:
       - description: Signup Request Body
         in: body
@@ -966,7 +1167,37 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: response
+          schema:
+            type: string
+        "400":
+          description: Bad Request - Invalid request body
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      summary: User Signup
+      tags:
+      - auth
+  /auth/signup/verify:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user and verify code.
+      parameters:
+      - description: VerifyEmail Request Body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: response
           schema:
             $ref: '#/definitions/model.SignupResponse'
         "400":
@@ -977,7 +1208,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/errs.Err'
-      summary: User Signup
+      summary: User Signup Verification
       tags:
       - auth
 securityDefinitions:

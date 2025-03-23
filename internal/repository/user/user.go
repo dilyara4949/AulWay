@@ -88,7 +88,8 @@ func (repo *Repository) GetUsers(ctx context.Context, page, pageSize int) ([]dom
 
 func (repo *Repository) UpdatePassword(ctx context.Context, email string, newPassword string, requirePasswordReset bool) error {
 	return repo.db.WithContext(ctx).
-		Model(&domain.User{Email: email}).
+		Model(&domain.User{}).
+		Where("email = ?", email).
 		Updates(map[string]interface{}{
 			"password":               newPassword,
 			"require_password_reset": requirePasswordReset,
