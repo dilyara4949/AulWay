@@ -86,7 +86,8 @@ func (r *Router) Build() *echo.Echo {
 	e.GET("/health", healthz.CheckHealth())
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	e.POST("/auth/signup", auth.SignupHandler(authService, userService, r.c))
+	e.POST("/auth/signup", auth.SignupHandler(r.redis, r.c))
+	e.POST("/auth/signup/verify", auth.VerifyEmailHandler(r.redis, userService, authService, r.c))
 	e.POST("/auth/signin", auth.SigninHandler(authService, userService, r.c))
 	e.POST("/auth/forgot-password", auth.ForgotPasswordHandler(authService))
 	e.POST("/auth/forgot-password/verify", auth.VerifyForgotPasswordHandler(authService))
@@ -108,7 +109,7 @@ func (r *Router) Build() *echo.Echo {
 
 	adminProtected.GET("/all-routes", route.GetAllRoutesListHandler(routeService, r.c))
 	adminProtected.POST("/routes", route.CreateRouteHandler(routeService, busService, r.c))
-	publicProtected.GET("/routes/:routeId", route.GetRouteHandler(routeService, r.c))
+	publicProtected.GET("/routes/:routeId", route.GetRouteHandler(routeService, busService, r.c))
 	adminProtected.PUT("/routes/:routeId", route.UpdateRouteHandler(routeService, r.c))
 	adminProtected.DELETE("/routes/:routeId", route.DeleteRouteHandler(routeService, r.c))
 	publicProtected.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
@@ -116,6 +117,7 @@ func (r *Router) Build() *echo.Echo {
 	publicProtected.POST("/tickets/:routeId", ticket.BuyTicketHandler(ticketService))
 	publicProtected.GET("/tickets/users/:userId", ticket.GetUserTicketsHandler(ticketService))
 	publicProtected.GET("/tickets/users/:userId/:ticketId", ticket.GetTicketDetailsHandler(ticketService))
+	adminProtected.GET("/tickets", ticket.GetTicketsSortByHandler(ticketService))
 
 	publicProtected.PUT("/pages/:title", page.UpdatePageHandler(pageService))
 	adminProtected.GET("/pages/:title", page.GetPageHandler(pageService))

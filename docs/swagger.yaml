@@ -146,6 +146,29 @@ definitions:
       old_password:
         type: string
     type: object
+  model.RouteResponse:
+    properties:
+      available_seats:
+        type: integer
+      bus_id:
+        type: string
+      bus_number:
+        type: string
+      bus_total_seats:
+        type: integer
+      departure:
+        type: string
+      destination:
+        type: string
+      end_date:
+        type: string
+      id:
+        type: string
+      price:
+        type: integer
+      start_date:
+        type: string
+    type: object
   model.SigninRequest:
     properties:
       email:
@@ -541,7 +564,7 @@ paths:
           schema:
             items:
               items:
-                $ref: '#/definitions/domain.Route'
+                $ref: '#/definitions/model.RouteResponse'
               type: array
             type: array
         "400":
@@ -635,7 +658,7 @@ paths:
         "200":
           description: Success
           schema:
-            $ref: '#/definitions/domain.Route'
+            $ref: '#/definitions/model.RouteResponse'
         "400":
           description: Bad Request
           schema:
@@ -685,6 +708,51 @@ paths:
       summary: Update Route
       tags:
       - route
+  /api/tickets:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve tickets sorted by user, start date, route, price, status,
+        or payment status with pagination.
+      parameters:
+      - description: Sort by field (user, start_date, route, price, status, payment_status)
+        in: query
+        name: sort_by
+        required: true
+        type: string
+      - default: asc
+        description: Sorting order (asc or desc)
+        in: query
+        name: order
+        type: string
+      - default: 1
+        description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - default: 30
+        description: 'Number of tickets per page (default: 30)'
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of tickets
+          schema:
+            items:
+              $ref: '#/definitions/domain.Ticket'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      security:
+      - BearerAuth: []
+      summary: Get sorted and paginated tickets
+      tags:
+      - tickets
   /api/tickets/{routeId}:
     post:
       consumes:

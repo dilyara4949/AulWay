@@ -3,6 +3,7 @@ package ticket
 import (
 	"aulway/internal/domain"
 	"aulway/internal/handler/access"
+	"aulway/internal/handler/pagination"
 	"aulway/internal/handler/ticket/model"
 	"aulway/internal/utils/errs"
 	"context"
@@ -21,6 +22,7 @@ type Service interface {
 	GetUpcomingTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error)
 	GetPastTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error)
 	TicketDetails(ctx context.Context, ticketId string) (*domain.Ticket, error)
+	GetTicketsSortBy(ctx context.Context, sortBy, ord string, page, pageSize int) ([]domain.Ticket, error)
 }
 
 // BuyTicketHandler processes ticket purchase requests for multiple tickets.
@@ -127,6 +129,38 @@ func GetTicketDetailsHandler(service Service) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, ticket)
+	}
+}
+
+// GetTicketsSortByHandler retrieves sorted and paginated tickets.
+// @Summary Get sorted and paginated tickets
+// @Description Retrieve tickets sorted by user, start date, route, price, status, or payment status with pagination.
+// @Tags tickets
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param sort_by query string true "Sort by field (user, start_date, route, price, status, payment_status)"
+// @Param order query string false "Sorting order (asc or desc)" default(asc)
+// @Param page query int false "Page number (default: 1)" default(1)
+// @Param page_size query int false "Number of tickets per page (default: 30)" default(30)
+// @Success 200 {array} domain.Ticket "List of tickets"
+// @Failure 500 {object} errs.Err "Internal server error"
+// @Router /api/tickets [get]
+func GetTicketsSortByHandler(service Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
+		sortBy := c.QueryParam("sort_by")
+		ord := c.QueryParam("order")
+
+		page, pageSize := pagination.GetPageInfo(c)
+
+		tickets, err := service.GetTicketsSortBy(ctx, sortBy, ord, page, pageSize)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "failed to get tickets", ErrDesc: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, tickets)
 	}
 }
 
