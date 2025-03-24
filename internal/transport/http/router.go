@@ -119,8 +119,8 @@ func (r *Router) Build() *echo.Echo {
 	publicProtected.GET("/tickets/users/:userId/:ticketId", ticket.GetTicketDetailsHandler(ticketService))
 	adminProtected.GET("/tickets", ticket.GetTicketsSortByHandler(ticketService))
 
-	publicProtected.PUT("/pages/:title", page.UpdatePageHandler(pageService))
-	adminProtected.GET("/pages/:title", page.GetPageHandler(pageService))
+	adminProtected.PUT("/pages/:title", page.UpdatePageHandler(pageService))
+	publicProtected.GET("/pages/:title", page.GetPageHandler(pageService))
 
 	return e
 }
