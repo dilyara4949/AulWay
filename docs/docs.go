@@ -454,7 +454,7 @@ const docTemplate = `{
                             "items": {
                                 "type": "array",
                                 "items": {
-                                    "$ref": "#/definitions/model.RouteResponse"
+                                    "$ref": "#/definitions/domain.Route"
                                 }
                             }
                         }
@@ -1534,7 +1534,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "qr_code": {
-                    "description": "Optional field for QR code storage",
                     "type": "string"
                 },
                 "route_id": {
@@ -1597,6 +1596,9 @@ const docTemplate = `{
             "properties": {
                 "quantity": {
                     "type": "integer"
+                },
+                "user_email": {
+                    "type": "string"
                 }
             }
         },

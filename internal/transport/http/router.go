@@ -17,6 +17,7 @@ import (
 	"aulway/internal/service"
 	middleware "aulway/internal/transport/middlware"
 	"aulway/internal/utils/config"
+	"aulway/internal/utils/logger"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/redis/go-redis/v9"
@@ -60,7 +61,7 @@ func (r *Router) Build() *echo.Echo {
 	paymentService := service.NewFPaymentProcessor()
 
 	ticketRepo := ticketRepository.New(r.db)
-	ticketService := service.NewTicketService(ticketRepo, paymentRepo, routeRepo, paymentService)
+	ticketService := service.NewTicketService(ticketRepo, paymentRepo, routeRepo, paymentService, busRepo)
 
 	pageRepo := pageRepository.New(r.db)
 	pageService := service.NewPageService(pageRepo)
@@ -75,7 +76,11 @@ func (r *Router) Build() *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.Debug = true
-	e.Use(echoMiddleware.Recover(), timeoutWithConfig, echoMiddleware.Logger())
+
+	aulLogger := logger.New()
+	e.Use(aulLogger.LogRequest)
+
+	e.Use(echoMiddleware.Recover(), timeoutWithConfig)
 
 	e.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
 		AllowOrigins: []string{"http://localhost:8080", "https://yourfrontend.com"},
@@ -114,7 +119,7 @@ func (r *Router) Build() *echo.Echo {
 	adminProtected.DELETE("/routes/:routeId", route.DeleteRouteHandler(routeService, r.c))
 	publicProtected.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
 
-	publicProtected.POST("/tickets/:routeId", ticket.BuyTicketHandler(ticketService))
+	publicProtected.POST("/tickets/:routeId", ticket.BuyTicketHandler(ticketService, r.c))
 	publicProtected.GET("/tickets/users/:userId", ticket.GetUserTicketsHandler(ticketService))
 	publicProtected.GET("/tickets/users/:userId/:ticketId", ticket.GetTicketDetailsHandler(ticketService))
 	adminProtected.GET("/tickets", ticket.GetTicketsSortByHandler(ticketService))

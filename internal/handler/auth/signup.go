@@ -126,6 +126,7 @@ func SignupHandler(redisClient *redis.Client, cfg config.Config) echo.HandlerFun
 
 		err = service.SendEmail(req.Email, "Email Verification Code", fmt.Sprintf("Your verification code is: %s", verificationCode), cfg.SMTP)
 		if err != nil {
+			log.Print(err.Error())
 			return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "signup failed", ErrDesc: "failed to send verification email"})
 		}
 

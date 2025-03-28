@@ -5,9 +5,13 @@ import (
 	"aulway/internal/handler/access"
 	"aulway/internal/handler/pagination"
 	"aulway/internal/handler/ticket/model"
+	"aulway/internal/service"
+	"aulway/internal/utils/config"
 	"aulway/internal/utils/errs"
 	"context"
+	"fmt"
 	"github.com/labstack/echo/v4"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -18,7 +22,7 @@ const (
 )
 
 type Service interface {
-	BuyTickets(ctx context.Context, userID, routeID string, paymentMethodID string, ticketAmount int) ([]domain.Ticket, error)
+	BuyTickets(ctx context.Context, userID, routeID string, paymentMethodID string, ticketAmount int) ([]domain.Ticket, *domain.Bus, *domain.Route, error)
 	GetUpcomingTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error)
 	GetPastTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error)
 	TicketDetails(ctx context.Context, ticketId string) (*domain.Ticket, error)
@@ -39,7 +43,7 @@ type Service interface {
 // @Failure      400      {object}  errs.Err                  "Invalid request or request binding failed"
 // @Failure      500      {object}  map[string]string         "Internal server error"
 // @Router       /api/tickets/{routeId} [post]
-func BuyTicketHandler(service Service) echo.HandlerFunc {
+func BuyTicketHandler(s Service, cfg config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req model.BuyTicketRequest
 		if err := c.Bind(&req); err != nil {
@@ -50,13 +54,60 @@ func BuyTicketHandler(service Service) echo.HandlerFunc {
 		routeId := c.Param("routeId")
 		userID := c.Get("user_id").(string)
 
-		tickets, err := service.BuyTickets(c.Request().Context(), userID, routeId, paymentId, req.Quantity)
+		tickets, bus, route, err := s.BuyTickets(c.Request().Context(), userID, routeId, paymentId, req.Quantity)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "error", ErrDesc: err.Error()})
 		}
 
+		go func() {
+			emailBody := buildTicketEmailBody(tickets, bus, route)
+			err := service.SendEmail(req.UserEmail, "Your Bus Ticket(s)", emailBody, cfg.SMTP)
+			if err != nil {
+				slog.Error("failed to send ticket email", slog.String("user_id", userID), slog.String("error", err.Error()))
+			}
+		}()
+
 		return c.JSON(http.StatusOK, tickets)
 	}
+}
+
+func buildTicketEmailBody(tickets []domain.Ticket, bus *domain.Bus, route *domain.Route) string {
+	body := `<html><body><h2>Your Bus Tickets</h2><hr>`
+
+	totalPrice := 0
+	ticketCount := len(tickets)
+
+	for _, t := range tickets {
+		departureDate := route.StartDate.Format("02 Jan 2006")
+		departureTime := route.StartDate.Format("15:04")
+		arrivalDate := route.EndDate.Format("02 Jan 2006")
+		arrivalTime := route.EndDate.Format("15:04")
+
+		body += fmt.Sprintf(`
+			<h3>Ticket ID: %s</h3>
+			<p><strong>Route:</strong> %s → %s<br>
+			<strong>Bus Number:</strong> %s<br>
+			<strong>Departure:</strong> %s at %s<br>
+			<strong>Arrival:</strong> %s at %s<br>`,
+			t.ID, route.Departure, route.Destination, bus.Number,
+			departureDate, departureTime,
+			arrivalDate, arrivalTime,
+		)
+
+		if t.QRCode != "" {
+			body += fmt.Sprintf(`<img src="data:image/png;base64,%s" alt="QR Code" style="margin-top:10px;"/><br><br>`, t.QRCode)
+		}
+
+		body += "<hr>"
+		totalPrice += t.Price
+	}
+
+	body += fmt.Sprintf(`
+		<h3>Total Tickets: %d</h3>
+		<h3>Total Price: %d₸</h3>
+		</body></html>`, ticketCount, totalPrice)
+
+	return body
 }
 
 // GetUserTicketsHandler returns a user's past or upcoming tickets.
@@ -163,43 +214,3 @@ func GetTicketsSortByHandler(service Service) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, tickets)
 	}
 }
-
-// DownloadTicketHandler serves the ticket as a PDF file
-//func DownloadTicketHandler(service Service) echo.HandlerFunc {
-//	return func(c echo.Context) error {
-//		ticketID := c.Param("ticketID")
-//
-//		// Fetch ticket from DB
-//		ticket, err := service.GetTicket(c.Request().Context(), ticketID)
-//		if err != nil {
-//			return c.JSON(http.StatusNotFound, map[string]string{"error": "Ticket not found"})
-//		}
-//
-//		// Generate PDF
-//		pdf := gofpdf.New("P", "mm", "A4", "")
-//		pdf.AddPage()
-//		pdf.SetFont("Arial", "B", 16)
-//		pdf.Cell(40, 10, "Ticket Details")
-//
-//		pdf.Ln(10) // New line
-//		pdf.SetFont("Arial", "", 12)
-//		pdf.Cell(40, 10, fmt.Sprintf("Ticket ID: %s", ticket.ID))
-//		pdf.Ln(8)
-//		pdf.Cell(40, 10, fmt.Sprintf("User ID: %s", ticket.UserID))
-//		pdf.Ln(8)
-//		pdf.Cell(40, 10, fmt.Sprintf("Route ID: %s", ticket.RouteID))
-//		pdf.Ln(8)
-//		pdf.Cell(40, 10, fmt.Sprintf("Price: $%d", ticket.Price))
-//		pdf.Ln(8)
-//		pdf.Cell(40, 10, fmt.Sprintf("Status: %s", ticket.Status))
-//		pdf.Ln(8)
-//		pdf.Cell(40, 10, fmt.Sprintf("Payment Status: %s", ticket.PaymentStatus))
-//		pdf.Ln(8)
-//		pdf.Cell(40, 10, fmt.Sprintf("Generated on: %s", time.Now().Format(time.RFC1123)))
-//
-//		// Serve PDF as response
-//		c.Response().Header().Set("Content-Type", "application/pdf")
-//		c.Response().Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=ticket_%s.pdf", ticket.ID))
-//		return pdf.Output(c.Response().Writer)
-//	}
-//}

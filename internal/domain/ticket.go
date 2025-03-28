@@ -7,8 +7,8 @@ type Ticket struct {
 	UserID        string    `json:"user_id"`
 	RouteID       string    `json:"route_id"`
 	Price         int       `json:"price"`
-	Status        string    `json:"status"`            // "approved", "cancelled", "awaiting"
-	PaymentStatus string    `json:"payment_status"`    // "pending", "paid", "failed"
-	QRCode        string    `json:"qr_code,omitempty"` // Optional field for QR code storage
+	Status        string    `json:"status"`         // "approved", "cancelled", "awaiting"
+	PaymentStatus string    `json:"payment_status"` // "pending", "paid", "failed"
+	QRCode        string    `json:"qr_code"`
 	CreatedAt     time.Time `json:"created_at"`
 }
