@@ -29,14 +29,16 @@ func (service *Route) CreateRoute(ctx context.Context, request model.CreateRoute
 	}
 
 	response := &domain.Route{
-		Id:             routeId.String(),
-		Departure:      CapitalizeFirst(request.Departure),
-		Destination:    CapitalizeFirst(request.Destination),
-		StartDate:      request.StartDate,
-		EndDate:        request.EndDate,
-		BusId:          request.BusId,
-		Price:          request.Price,
-		AvailableSeats: availableSeats,
+		Id:                  routeId.String(),
+		Departure:           CapitalizeFirst(request.Departure),
+		Destination:         CapitalizeFirst(request.Destination),
+		DestinationLocation: request.DestinationLocation,
+		DepartureLocation:   request.DepartureLocation,
+		StartDate:           request.StartDate,
+		EndDate:             request.EndDate,
+		BusId:               request.BusId,
+		Price:               request.Price,
+		AvailableSeats:      availableSeats,
 	}
 
 	err = service.repo.Create(ctx, response)

@@ -1654,7 +1654,13 @@
                 "departure": {
                     "type": "string"
                 },
+                "departure_location": {
+                    "type": "string"
+                },
                 "destination": {
+                    "type": "string"
+                },
+                "destination_location": {
                     "type": "string"
                 },
                 "end_date": {
@@ -1718,7 +1724,13 @@
                 "departure": {
                     "type": "string"
                 },
+                "departure_location": {
+                    "type": "string"
+                },
                 "destination": {
+                    "type": "string"
+                },
+                "destination_location": {
                     "type": "string"
                 },
                 "end_date": {
@@ -1726,6 +1738,9 @@
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_favorite": {
+                    "type": "boolean"
                 },
                 "price": {
                     "type": "integer"
@@ -1745,6 +1760,9 @@
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "order_number": {
                     "type": "string"
                 },
                 "payment_status": {
@@ -1862,7 +1880,13 @@
                 "departure": {
                     "type": "string"
                 },
+                "departure_location": {
+                    "type": "string"
+                },
                 "destination": {
+                    "type": "string"
+                },
+                "destination_location": {
                     "type": "string"
                 },
                 "end_date": {
@@ -1973,7 +1997,13 @@
                 "departure": {
                     "type": "string"
                 },
+                "departure_location": {
+                    "type": "string"
+                },
                 "destination": {
+                    "type": "string"
+                },
+                "destination_location": {
                     "type": "string"
                 },
                 "end_date": {

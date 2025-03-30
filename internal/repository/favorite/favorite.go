@@ -71,13 +71,13 @@ func (repo *Repository) Exists(ctx context.Context, userID, routeID string) (boo
 
 func (repo *Repository) GetFavoriteRoutes(ctx context.Context, userId string, page, pageSize int) ([]domain.Route, error) {
 	routes := make([]domain.Route, 0)
-
 	offset := (page - 1) * pageSize
 
 	err := repo.db.WithContext(ctx).
 		Table("favorite_routes").
 		Select(`
 			routes.id, routes.departure, routes.destination,
+			routes.departure_location, routes.destination_location,  -- ✅ новые поля
 			routes.start_date, routes.end_date, routes.available_seats,
 			routes.bus_id, routes.price,
 			routes.created_at, routes.updated_at
@@ -94,5 +94,4 @@ func (repo *Repository) GetFavoriteRoutes(ctx context.Context, userId string, pa
 	}
 
 	return routes, nil
-
 }
