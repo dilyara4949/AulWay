@@ -7,17 +7,17 @@ import (
 
 const (
 	pageDefault     = 1
-	pageSizeDefault = 10
+	pageSizeDefault = 30
 	maxPageSize     = 100
 )
 
-func GetPageInfo(c echo.Context) (page int, pageSize int) {
+func GetPageInfo(c echo.Context) (int, int) {
 	page, err := strconv.Atoi(c.QueryParam("page"))
 	if err != nil || page <= 0 {
 		page = pageDefault
 	}
 
-	pageSize, err = strconv.Atoi(c.QueryParam("page_size"))
+	pageSize, err := strconv.Atoi(c.QueryParam("pageSize"))
 	if err != nil || pageSize <= 0 {
 		pageSize = pageSizeDefault
 	} else if pageSize > maxPageSize {
