@@ -3,12 +3,14 @@ package http
 import (
 	"aulway/internal/handler/auth"
 	"aulway/internal/handler/bus"
+	favorite "aulway/internal/handler/favorites"
 	"aulway/internal/handler/healthz"
 	"aulway/internal/handler/page"
 	"aulway/internal/handler/route"
 	"aulway/internal/handler/ticket"
 	"aulway/internal/handler/user"
 	busRepostory "aulway/internal/repository/bus"
+	favRepository "aulway/internal/repository/favorite"
 	pageRepository "aulway/internal/repository/page"
 	paymentRepostory "aulway/internal/repository/payment"
 	routeRepostory "aulway/internal/repository/route"
@@ -66,6 +68,9 @@ func (r *Router) Build() *echo.Echo {
 	pageRepo := pageRepository.New(r.db)
 	pageService := service.NewPageService(pageRepo)
 
+	favRepo := favRepository.New(r.db)
+	favService := service.NewFavoriteService(favRepo)
+
 	timeoutWithConfig := echoMiddleware.TimeoutWithConfig(
 		echoMiddleware.TimeoutConfig{
 			Skipper:      echoMiddleware.DefaultSkipper,
@@ -83,7 +88,7 @@ func (r *Router) Build() *echo.Echo {
 	e.Use(echoMiddleware.Recover(), timeoutWithConfig)
 
 	e.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:8080", "https://yourfrontend.com"},
+		AllowOrigins: []string{"http://localhost:8080", "https://localhost:5173"},
 		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE, echo.OPTIONS},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 	}))
@@ -91,7 +96,7 @@ func (r *Router) Build() *echo.Echo {
 	e.GET("/health", healthz.CheckHealth())
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	e.POST("/auth/signup", auth.SignupHandler(r.redis, r.c))
+	e.POST("/auth/signup", auth.SignupHandler(r.redis, r.c, userService))
 	e.POST("/auth/signup/verify", auth.VerifyEmailHandler(r.redis, userService, authService, r.c))
 	e.POST("/auth/signin", auth.SigninHandler(authService, userService, r.c))
 	e.POST("/auth/forgot-password", auth.ForgotPasswordHandler(authService))
@@ -126,6 +131,10 @@ func (r *Router) Build() *echo.Echo {
 
 	adminProtected.PUT("/pages/:title", page.UpdatePageHandler(pageService))
 	publicProtected.GET("/pages/:title", page.GetPageHandler(pageService))
+
+	publicProtected.POST("/users/:userId/favorites", favorite.AddFavoriteHandler(favService))
+	publicProtected.DELETE("/users/:userId/favorites/:routeId", favorite.RemoveFavoriteHandler(favService))
+	publicProtected.GET("/users/:userId/favorites", favorite.GetFavoritesHandler(favService))
 
 	return e
 }

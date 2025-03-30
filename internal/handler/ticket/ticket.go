@@ -72,7 +72,7 @@ func BuyTicketHandler(s Service, cfg config.Config) echo.HandlerFunc {
 }
 
 func buildTicketEmailBody(tickets []domain.Ticket, bus *domain.Bus, route *domain.Route) string {
-	body := `<html><body><h2>Your Bus Tickets</h2><hr>`
+	body := `<html><body><h2>AulWay Tickets</h2><hr>`
 
 	totalPrice := 0
 	ticketCount := len(tickets)
