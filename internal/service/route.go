@@ -63,6 +63,12 @@ func (service *Route) Update(ctx context.Context, req model.UpdateRouteRequest, 
 	if req.Destination != "" {
 		updates["destination"] = CapitalizeFirst(req.Destination)
 	}
+	if req.DepartureLocation != "" {
+		updates["departure_location"] = CapitalizeFirst(req.DepartureLocation)
+	}
+	if req.Destination != "" {
+		updates["destination_location"] = CapitalizeFirst(req.DestinationLocation)
+	}
 	if !req.StartDate.IsZero() {
 		updates["start_date"] = req.StartDate
 	}
