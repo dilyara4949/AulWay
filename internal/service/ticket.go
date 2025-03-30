@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/skip2/go-qrcode"
 	"image/jpeg"
+	"math/rand"
 	"time"
 )
 
@@ -75,6 +76,8 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 			PaymentStatus: "pending",
 			CreatedAt:     time.Now(),
 		}
+
+		ticket.OrderNumber = generateOrderNumber()
 
 		qrCodePath, err := generateQRCode(&ticket)
 		if err != nil {
@@ -191,4 +194,8 @@ func (s *TicketService) GetTicketsSortBy(
 	page, pageSize int,
 ) ([]domain.Ticket, error) {
 	return s.TicketRepo.GetTicketsSortBy(ctx, sortBy, ord, page, pageSize)
+}
+
+func generateOrderNumber() string {
+	return fmt.Sprintf("ORD-%d-%04d", time.Now().Unix(), rand.Intn(10000))
 }

@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"time"
 )
 
@@ -28,8 +30,8 @@ func (service *Route) CreateRoute(ctx context.Context, request model.CreateRoute
 
 	response := &domain.Route{
 		Id:             routeId.String(),
-		Departure:      request.Departure,
-		Destination:    request.Destination,
+		Departure:      CapitalizeFirst(request.Departure),
+		Destination:    CapitalizeFirst(request.Destination),
 		StartDate:      request.StartDate,
 		EndDate:        request.EndDate,
 		BusId:          request.BusId,
@@ -54,10 +56,10 @@ func (service *Route) Update(ctx context.Context, req model.UpdateRouteRequest, 
 	updates := make(map[string]interface{})
 
 	if req.Departure != "" {
-		updates["departure"] = req.Departure
+		updates["departure"] = CapitalizeFirst(req.Departure)
 	}
 	if req.Destination != "" {
-		updates["destination"] = req.Destination
+		updates["destination"] = CapitalizeFirst(req.Destination)
 	}
 	if !req.StartDate.IsZero() {
 		updates["start_date"] = req.StartDate
@@ -79,10 +81,17 @@ func (service *Route) Update(ctx context.Context, req model.UpdateRouteRequest, 
 	return service.repo.Update(ctx, updates, id)
 }
 
-func (service *Route) GetRoutesList(ctx context.Context, departure, destination string, date time.Time, passengers, page, pageSize int) ([]domain.Route, int, error) {
-	return service.repo.GetRoutesList(ctx, departure, destination, date, passengers, page, pageSize)
+func (service *Route) GetRoutesListt(ctx context.Context, userId, departure, destination string, date time.Time, passengers, page, pageSize int) ([]domain.Route, int, error) {
+	departure = CapitalizeFirst(departure)
+	destination = CapitalizeFirst(destination)
+	return service.repo.GetRoutesList(ctx, userId, departure, destination, date, passengers, page, pageSize)
 }
 
 func (service *Route) GetAllRoutesList(ctx context.Context, page, pageSize int) ([]domain.Route, error) {
 	return service.repo.GetAllRoutesList(ctx, page, pageSize)
+}
+
+func CapitalizeFirst(str string) string {
+	c := cases.Title(language.Und)
+	return c.String(str)
 }
