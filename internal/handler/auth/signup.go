@@ -27,6 +27,10 @@ const (
 	UserRole  = "user"
 )
 
+type userService interface {
+	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
+}
+
 type Service interface {
 	CreateAccessToken(ctx context.Context, user domain.User, jwtSecret string, expiry int) (string, error)
 	SendResetCode(ctx context.Context, email string) error
@@ -96,7 +100,7 @@ func VerifyForgotPasswordHandler(svc Service) echo.HandlerFunc {
 // @Failure 400 {object} errs.Err "Bad Request - Invalid request body"
 // @Failure 500 {object} errs.Err "Internal Server Error"
 // @Router /auth/signup [post]
-func SignupHandler(redisClient *redis.Client, cfg config.Config) echo.HandlerFunc {
+func SignupHandler(redisClient *redis.Client, cfg config.Config, userS userService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req model.SignupRequest
 
@@ -117,6 +121,11 @@ func SignupHandler(redisClient *redis.Client, cfg config.Config) echo.HandlerFun
 			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "signup failed", ErrDesc: err.Error()})
 		}
 
+		_, err = userS.GetUserByEmail(c.Request().Context(), req.Email)
+		if err == nil {
+			return c.JSON(http.StatusBadRequest, uerrs.Err{Err: "signup failed", ErrDesc: "email already exists"})
+		}
+
 		verificationCode := fmt.Sprintf("%06d", rand.Intn(1000000))
 
 		err = redisClient.Set(c.Request().Context(), "email_verification:"+req.Email, verificationCode, 10*time.Minute).Err()
@@ -126,6 +135,7 @@ func SignupHandler(redisClient *redis.Client, cfg config.Config) echo.HandlerFun
 
 		err = service.SendEmail(req.Email, "Email Verification Code", fmt.Sprintf("Your verification code is: %s", verificationCode), cfg.SMTP)
 		if err != nil {
+			log.Print(err.Error())
 			return c.JSON(http.StatusInternalServerError, uerrs.Err{Err: "signup failed", ErrDesc: "failed to send verification email"})
 		}
 

@@ -75,7 +75,7 @@ func (repo *Repository) Delete(ctx context.Context, id string) error {
 }
 
 func (repo *Repository) GetUsers(ctx context.Context, page, pageSize int) ([]domain.User, error) {
-	var users []domain.User
+	users := make([]domain.User, 0)
 
 	offset := (page - 1) * pageSize
 

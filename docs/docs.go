@@ -454,7 +454,7 @@ const docTemplate = `{
                             "items": {
                                 "type": "array",
                                 "items": {
-                                    "$ref": "#/definitions/model.RouteResponse"
+                                    "$ref": "#/definitions/domain.Route"
                                 }
                             }
                         }
@@ -554,7 +554,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Success",
                         "schema": {
-                            "$ref": "#/definitions/model.RouteResponse"
+                            "$ref": "#/definitions/aulway_internal_handler_route_model.RouteResponse"
                         }
                     },
                     "400": {
@@ -1202,6 +1202,200 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/users/{userId}/favorites": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a list of user's favorite routes with route and bus info",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "favorites"
+                ],
+                "summary": "Get Favorite Routes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number for pagination (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size for pagination (default: 30)",
+                        "name": "pageSize",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of favorite routes",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.Route"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Access Denied",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Adds a route to the user's favorites",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "favorites"
+                ],
+                "summary": "Add to Favorites",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Favorite Route Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.AddFavoriteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Added to favorites",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "403": {
+                        "description": "Access Denied",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/{userId}/favorites/{routeId}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a route from the user's favorites",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "favorites"
+                ],
+                "summary": "Remove from Favorites",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Route ID",
+                        "name": "routeId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Removed from favorites",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "403": {
+                        "description": "Access Denied",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errs.Err"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/forgot-password": {
             "post": {
                 "consumes": [
@@ -1450,6 +1644,41 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "aulway_internal_handler_route_model.RouteResponse": {
+            "type": "object",
+            "properties": {
+                "available_seats": {
+                    "type": "integer"
+                },
+                "bus_id": {
+                    "type": "string"
+                },
+                "bus_number": {
+                    "type": "string"
+                },
+                "bus_total_seats": {
+                    "type": "integer"
+                },
+                "departure": {
+                    "type": "string"
+                },
+                "destination": {
+                    "type": "string"
+                },
+                "end_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
+                },
+                "start_date": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.Bus": {
             "type": "object",
             "properties": {
@@ -1534,7 +1763,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "qr_code": {
-                    "description": "Optional field for QR code storage",
                     "type": "string"
                 },
                 "route_id": {
@@ -1592,11 +1820,25 @@ const docTemplate = `{
                 }
             }
         },
+        "model.AddFavoriteRequest": {
+            "type": "object",
+            "required": [
+                "route_id"
+            ],
+            "properties": {
+                "route_id": {
+                    "type": "string"
+                }
+            }
+        },
         "model.BuyTicketRequest": {
             "type": "object",
             "properties": {
                 "quantity": {
                     "type": "integer"
+                },
+                "user_email": {
+                    "type": "string"
                 }
             }
         },
@@ -1666,41 +1908,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "old_password": {
-                    "type": "string"
-                }
-            }
-        },
-        "model.RouteResponse": {
-            "type": "object",
-            "properties": {
-                "available_seats": {
-                    "type": "integer"
-                },
-                "bus_id": {
-                    "type": "string"
-                },
-                "bus_number": {
-                    "type": "string"
-                },
-                "bus_total_seats": {
-                    "type": "integer"
-                },
-                "departure": {
-                    "type": "string"
-                },
-                "destination": {
-                    "type": "string"
-                },
-                "end_date": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "integer"
-                },
-                "start_date": {
                     "type": "string"
                 }
             }

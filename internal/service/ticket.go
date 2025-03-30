@@ -2,6 +2,7 @@ package service
 
 import (
 	"aulway/internal/domain"
+	busRepo "aulway/internal/repository/bus"
 	paymentRepo "aulway/internal/repository/payment"
 	routeRepo "aulway/internal/repository/route"
 	ticketRepo "aulway/internal/repository/ticket"
@@ -18,12 +19,13 @@ import (
 	"time"
 )
 
-func NewTicketService(ticketRepo ticketRepo.Repository, paymentRepo paymentRepo.Repository, routeRepo routeRepo.Repository, processor PaymentProcessor) *TicketService {
+func NewTicketService(ticketRepo ticketRepo.Repository, paymentRepo paymentRepo.Repository, routeRepo routeRepo.Repository, processor PaymentProcessor, busRepo busRepo.Repository) *TicketService {
 	return &TicketService{
 		TicketRepo:       ticketRepo,
 		RouteRepo:        routeRepo,
 		PaymentRepo:      paymentRepo,
 		PaymentProcessor: processor,
+		BusRepo:          busRepo,
 	}
 }
 
@@ -32,14 +34,15 @@ type TicketService struct {
 	RouteRepo        routeRepo.Repository
 	PaymentRepo      paymentRepo.Repository
 	PaymentProcessor PaymentProcessor
+	BusRepo          busRepo.Repository
 }
 
 //4242 4242 4242 4242 (Visa) – Succeeds
 //4000 0000 0000 9995 (Declined)
 
-func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, paymentMethodID string, quantity int) ([]domain.Ticket, error) {
+func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, paymentMethodID string, quantity int) ([]domain.Ticket, *domain.Bus, *domain.Route, error) {
 	if quantity <= 0 {
-		return nil, errors.New("quantity must be positive")
+		return nil, nil, nil, errors.New("quantity must be positive")
 	}
 
 	tx := s.TicketRepo.BeginTransaction()
@@ -52,11 +55,11 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 	route, err := s.RouteRepo.Get(ctx, routeID)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, nil, nil, err
 	}
 	if route.AvailableSeats < quantity {
 		tx.Rollback()
-		return nil, errs.ErrNoSeatsAvailable
+		return nil, nil, nil, errs.ErrNoSeatsAvailable
 	}
 
 	var tickets []domain.Ticket
@@ -76,25 +79,25 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 		qrCodePath, err := generateQRCode(&ticket)
 		if err != nil {
 			tx.Rollback()
-			return nil, fmt.Errorf("failed to generate QR code: %w", err)
+			return nil, nil, nil, fmt.Errorf("failed to generate QR code: %w", err)
 		}
 		ticket.QRCode = qrCodePath
 
 		err = s.TicketRepo.Create(ctx, tx, &ticket)
 		if err != nil {
 			tx.Rollback()
-			return nil, fmt.Errorf("failed to create ticket: %w", err)
+			return nil, nil, nil, fmt.Errorf("failed to create ticket: %w", err)
 		}
 
 		transactionId, _ := uuid.NewV7()
 		success, stripeErr := s.PaymentProcessor.ProcessPayment(ctx, userID, ticket.Price, paymentMethodID)
 		if stripeErr != nil {
 			tx.Rollback()
-			return nil, fmt.Errorf("payment failed: %w", stripeErr)
+			return nil, nil, nil, fmt.Errorf("payment failed: %w", stripeErr)
 		}
 		if !success {
 			tx.Rollback()
-			return nil, fmt.Errorf("payment was not successful")
+			return nil, nil, nil, fmt.Errorf("payment was not successful")
 		}
 
 		paymentId, _ := uuid.NewV7()
@@ -112,7 +115,7 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 		err = s.PaymentRepo.Create(ctx, tx, payment)
 		if err != nil {
 			tx.Rollback()
-			return nil, fmt.Errorf("failed to create payment: %w", err)
+			return nil, nil, nil, fmt.Errorf("failed to create payment: %w", err)
 		}
 
 		err = s.TicketRepo.Update(ctx, tx, map[string]interface{}{
@@ -121,7 +124,7 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 		}, ticket.ID)
 		if err != nil {
 			tx.Rollback()
-			return nil, fmt.Errorf("failed to update ticket: %w", err)
+			return nil, nil, nil, fmt.Errorf("failed to update ticket: %w", err)
 		}
 
 		ticket.Status = "approved"
@@ -135,11 +138,17 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 	}, route.Id)
 	if err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("failed to update route seats: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to update route seats: %w", err)
+	}
+
+	bus, err := s.BusRepo.Get(ctx, route.BusId)
+	if err != nil {
+		tx.Rollback()
+		return nil, nil, nil, err
 	}
 
 	tx.Commit()
-	return tickets, nil
+	return tickets, bus, route, nil
 }
 
 func generateQRCode(ticket *domain.Ticket) (string, error) {
