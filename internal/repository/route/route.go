@@ -76,7 +76,9 @@ func (repo *Repository) GetRoutesList(ctx context.Context, userID, departure, de
 	offset := (page - 1) * pageSize
 
 	query := `
-		SELECT r.id, r.departure, r.destination, r.start_date, r.end_date,
+		SELECT r.id, r.departure, r.destination,
+		       r.departure_location, r.destination_location,
+		       r.start_date, r.end_date,
 		       r.available_seats, r.bus_id, r.price, r.created_at, r.updated_at,
 		       CASE WHEN f.user_id IS NULL THEN false ELSE true END AS is_favorite,
 		       COUNT(*) OVER() AS total_count
@@ -100,8 +102,11 @@ func (repo *Repository) GetRoutesList(ctx context.Context, userID, departure, de
 	for rows.Next() {
 		var route domain.Route
 		if err := rows.Scan(
-			&route.Id, &route.Departure, &route.Destination, &route.StartDate, &route.EndDate,
-			&route.AvailableSeats, &route.BusId, &route.Price, &route.CreatedAt, &route.UpdatedAt,
+			&route.Id, &route.Departure, &route.Destination,
+			&route.DepartureLocation, &route.DestinationLocation,
+			&route.StartDate, &route.EndDate,
+			&route.AvailableSeats, &route.BusId, &route.Price,
+			&route.CreatedAt, &route.UpdatedAt,
 			&route.IsFavorite, &total,
 		); err != nil {
 			return nil, 0, err

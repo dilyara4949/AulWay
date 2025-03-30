@@ -11,7 +11,11 @@ definitions:
         type: integer
       departure:
         type: string
+      departure_location:
+        type: string
       destination:
+        type: string
+      destination_location:
         type: string
       end_date:
         type: string
@@ -53,12 +57,18 @@ definitions:
         type: string
       departure:
         type: string
+      departure_location:
+        type: string
       destination:
+        type: string
+      destination_location:
         type: string
       end_date:
         type: string
       id:
         type: string
+      is_favorite:
+        type: boolean
       price:
         type: integer
       start_date:
@@ -71,6 +81,8 @@ definitions:
       created_at:
         type: string
       id:
+        type: string
+      order_number:
         type: string
       payment_status:
         description: '"pending", "paid", "failed"'
@@ -142,7 +154,11 @@ definitions:
         type: string
       departure:
         type: string
+      departure_location:
+        type: string
       destination:
+        type: string
+      destination_location:
         type: string
       end_date:
         example: "2025-12-12T13:00:00+05:00"
@@ -216,7 +232,11 @@ definitions:
         type: string
       departure:
         type: string
+      departure_location:
+        type: string
       destination:
+        type: string
+      destination_location:
         type: string
       end_date:
         example: "2025-12-12T13:00:00+05:00"

@@ -90,10 +90,13 @@ func buildTicketEmailBody(tickets []domain.Ticket, bus *domain.Bus, route *domai
 	body += fmt.Sprintf(`<p><strong>Маршрут:</strong> %s → %s<br>
 <strong>Автобус №:</strong> %s<br>
 <strong>Отправление:</strong> %s в %s (GMT+05 Алматы)<br>
-<strong>Прибытие:</strong> %s в %s (GMT+05 Алматы)</p>`,
+<strong>Прибытие:</strong> %s в %s (GMT+05 Алматы)<br>
+<strong>Адрес посадки:</strong> %s<br>
+<strong>Адрес высадки:</strong> %s</p>`,
 		route.Departure, route.Destination, bus.Number,
 		departureDate, departureTime,
 		arrivalDate, arrivalTime,
+		route.DepartureLocation, route.DestinationLocation,
 	)
 
 	body += `<table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; margin-top: 20px;">

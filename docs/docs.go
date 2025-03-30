@@ -1662,7 +1662,13 @@ const docTemplate = `{
                 "departure": {
                     "type": "string"
                 },
+                "departure_location": {
+                    "type": "string"
+                },
                 "destination": {
+                    "type": "string"
+                },
+                "destination_location": {
                     "type": "string"
                 },
                 "end_date": {
@@ -1726,7 +1732,13 @@ const docTemplate = `{
                 "departure": {
                     "type": "string"
                 },
+                "departure_location": {
+                    "type": "string"
+                },
                 "destination": {
+                    "type": "string"
+                },
+                "destination_location": {
                     "type": "string"
                 },
                 "end_date": {
@@ -1734,6 +1746,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_favorite": {
+                    "type": "boolean"
                 },
                 "price": {
                     "type": "integer"
@@ -1753,6 +1768,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "order_number": {
                     "type": "string"
                 },
                 "payment_status": {
@@ -1870,7 +1888,13 @@ const docTemplate = `{
                 "departure": {
                     "type": "string"
                 },
+                "departure_location": {
+                    "type": "string"
+                },
                 "destination": {
+                    "type": "string"
+                },
+                "destination_location": {
                     "type": "string"
                 },
                 "end_date": {
@@ -1981,7 +2005,13 @@ const docTemplate = `{
                 "departure": {
                     "type": "string"
                 },
+                "departure_location": {
+                    "type": "string"
+                },
                 "destination": {
+                    "type": "string"
+                },
+                "destination_location": {
                     "type": "string"
                 },
                 "end_date": {
