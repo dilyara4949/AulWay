@@ -88,7 +88,7 @@ func (r *Router) Build() *echo.Echo {
 	e.Use(echoMiddleware.Recover(), timeoutWithConfig)
 
 	e.Use(echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:8080", "https://localhost:5173"},
+		AllowOrigins: []string{"http://0.0.0.0:8080", "http://localhost:5173"},
 		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE, echo.OPTIONS},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 	}))

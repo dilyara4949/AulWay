@@ -69,25 +69,29 @@ func (repo *Repository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (repo *Repository) GetRoutesList(ctx context.Context, departure, destination string, date time.Time, passengers, page, pageSize int) ([]domain.Route, int, error) {
+func (repo *Repository) GetRoutesList(ctx context.Context, userID, departure, destination string, date time.Time, passengers, page, pageSize int) ([]domain.Route, int, error) {
 	routes := make([]domain.Route, 0)
-
 	var total int
 
 	offset := (page - 1) * pageSize
 
 	query := `
-		SELECT *, COUNT(*) OVER() AS total_count
-		FROM routes
-		WHERE departure = ? 
-		  AND destination = ? 
-		  AND start_date >= ? 
-		  AND available_seats >= ?
-		ORDER BY start_date ASC
+		SELECT r.id, r.departure, r.destination, r.start_date, r.end_date,
+		       r.available_seats, r.bus_id, r.price, r.created_at, r.updated_at,
+		       CASE WHEN f.user_id IS NULL THEN false ELSE true END AS is_favorite,
+		       COUNT(*) OVER() AS total_count
+		FROM routes r
+		LEFT JOIN favorite_routes f ON r.id = f.route_id AND f.user_id = ?
+		WHERE r.departure = ? 
+		  AND r.destination = ? 
+		  AND r.start_date >= ? 
+		  AND r.available_seats >= ?
+		ORDER BY r.start_date ASC
 		LIMIT ? OFFSET ?
 	`
 
-	rows, err := repo.db.WithContext(ctx).Raw(query, departure, destination, date, passengers, pageSize, offset).Rows()
+	rows, err := repo.db.WithContext(ctx).Raw(query,
+		userID, departure, destination, date, passengers, pageSize, offset).Rows()
 	if err != nil {
 		return nil, 0, err
 	}
@@ -97,7 +101,8 @@ func (repo *Repository) GetRoutesList(ctx context.Context, departure, destinatio
 		var route domain.Route
 		if err := rows.Scan(
 			&route.Id, &route.Departure, &route.Destination, &route.StartDate, &route.EndDate,
-			&route.AvailableSeats, &route.BusId, &route.Price, &route.CreatedAt, &route.UpdatedAt, &total,
+			&route.AvailableSeats, &route.BusId, &route.Price, &route.CreatedAt, &route.UpdatedAt,
+			&route.IsFavorite, &total,
 		); err != nil {
 			return nil, 0, err
 		}

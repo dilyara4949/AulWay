@@ -18,7 +18,7 @@ type Service interface {
 	GetRoute(ctx context.Context, id string) (*domain.Route, error)
 	Delete(ctx context.Context, id string) error
 	Update(ctx context.Context, req model.UpdateRouteRequest, id string) error
-	GetRoutesList(ctx context.Context, departure, destination string, date time.Time, passengers, page, pageSize int) ([]domain.Route, int, error)
+	GetRoutesListt(ctx context.Context, userId, departure, destination string, date time.Time, passengers, page, pageSize int) ([]domain.Route, int, error)
 	GetAllRoutesList(ctx context.Context, page, pageSize int) ([]domain.Route, error)
 }
 
@@ -171,6 +171,8 @@ func UpdateRouteHandler(routeService Service, _ config.Config) echo.HandlerFunc 
 // @Router /api/routes [get]
 func GetRoutesListHandler(routeService Service, _ config.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		userId := c.Get("user_id").(string)
+
 		departure := c.QueryParam("departure")
 		destination := c.QueryParam("destination")
 		dateStr := c.QueryParam("date")
@@ -192,7 +194,7 @@ func GetRoutesListHandler(routeService Service, _ config.Config) echo.HandlerFun
 
 		page, pageSize := pagination.GetPageInfo(c)
 
-		routes, _, err := routeService.GetRoutesList(c.Request().Context(), departure, destination, date, passengers, page, pageSize)
+		routes, _, err := routeService.GetRoutesListt(c.Request().Context(), userId, departure, destination, date, passengers, page, pageSize)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "Failed to get routes", ErrDesc: err.Error()})
 		}

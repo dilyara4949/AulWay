@@ -72,40 +72,66 @@ func BuyTicketHandler(s Service, cfg config.Config) echo.HandlerFunc {
 }
 
 func buildTicketEmailBody(tickets []domain.Ticket, bus *domain.Bus, route *domain.Route) string {
-	body := `<html><body><h2>AulWay Tickets</h2><hr>`
+	if len(tickets) == 0 {
+		return "<html><body><p>Билеты не найдены.</p></body></html>"
+	}
+
+	orderNumber := tickets[0].OrderNumber
+
+	loc := time.FixedZone("Almaty", 5*60*60)
+	departureDate := route.StartDate.In(loc).Format("02 Jan 2006")
+	departureTime := route.StartDate.In(loc).Format("15:04")
+	arrivalDate := route.EndDate.In(loc).Format("02 Jan 2006")
+	arrivalTime := route.EndDate.In(loc).Format("15:04")
+
+	body := `<html><body style="font-family: Arial, sans-serif;">`
+	body += `<h2 style="color:#2d89ef;">Подтверждение покупки билетов – AulWay</h2><hr>`
+	body += fmt.Sprintf(`<p><strong>Номер заказа:</strong> %s</p>`, orderNumber)
+	body += fmt.Sprintf(`<p><strong>Маршрут:</strong> %s → %s<br>
+<strong>Автобус №:</strong> %s<br>
+<strong>Отправление:</strong> %s в %s (GMT+05 Алматы)<br>
+<strong>Прибытие:</strong> %s в %s (GMT+05 Алматы)</p>`,
+		route.Departure, route.Destination, bus.Number,
+		departureDate, departureTime,
+		arrivalDate, arrivalTime,
+	)
+
+	body += `<table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; margin-top: 20px;">
+	<thead>
+		<tr>
+			<th>Место</th>
+			<th>Цена</th>
+			<th>QR-код</th>
+		</tr>
+	</thead>
+	<tbody>`
 
 	totalPrice := 0
-	ticketCount := len(tickets)
 
-	for _, t := range tickets {
-		departureDate := route.StartDate.Format("02 Jan 2006")
-		departureTime := route.StartDate.Format("15:04")
-		arrivalDate := route.EndDate.Format("02 Jan 2006")
-		arrivalTime := route.EndDate.Format("15:04")
-
-		body += fmt.Sprintf(`
-			<h3>Ticket ID: %s</h3>
-			<p><strong>Route:</strong> %s → %s<br>
-			<strong>Bus Number:</strong> %s<br>
-			<strong>Departure:</strong> %s at %s<br>
-			<strong>Arrival:</strong> %s at %s<br>`,
-			t.ID, route.Departure, route.Destination, bus.Number,
-			departureDate, departureTime,
-			arrivalDate, arrivalTime,
-		)
+	for i, t := range tickets {
+		body += "<tr>"
+		body += fmt.Sprintf("<td>Билет #%d</td>", i+1)
+		body += fmt.Sprintf("<td>%d₸</td>", t.Price)
 
 		if t.QRCode != "" {
-			body += fmt.Sprintf(`<img src="data:image/png;base64,%s" alt="QR Code" style="margin-top:10px;"/><br><br>`, t.QRCode)
+			body += fmt.Sprintf(`<td><img src="data:image/png;base64,%s" alt="QR-код" style="max-width:120px;"/></td>`, t.QRCode)
+		} else {
+			body += "<td>Нет</td>"
 		}
 
-		body += "<hr>"
+		body += "</tr>"
+
 		totalPrice += t.Price
 	}
 
-	body += fmt.Sprintf(`
-		<h3>Total Tickets: %d</h3>
-		<h3>Total Price: %d₸</h3>
-		</body></html>`, ticketCount, totalPrice)
+	body += "</tbody></table>"
+
+	body += fmt.Sprintf(`<p style="margin-top:20px;"><strong>Всего билетов:</strong> %d<br><strong>Общая сумма:</strong> %d₸</p>`,
+		len(tickets), totalPrice)
+
+	body += `<p style="margin-top:30px;">Спасибо за покупку!<br>Хорошей поездки с AulWay 😊</p>`
+
+	body += `</body></html>`
 
 	return body
 }

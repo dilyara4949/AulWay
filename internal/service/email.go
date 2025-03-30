@@ -8,8 +8,10 @@ import (
 
 func SendEmail(to, subject, body string, smtpConfig config.SMTP) error {
 	from := smtpConfig.Username
-	msg := []byte(fmt.Sprintf("Subject: %s\r\n\r\n%s", subject, body))
-
+	msg := []byte("MIME-Version: 1.0\r\n" +
+		"Content-Type: text/html; charset=\"UTF-8\"\r\n" +
+		fmt.Sprintf("Subject: %s\r\n", subject) +
+		"\r\n" + body)
 	auth := smtp.PlainAuth("", smtpConfig.Username, smtpConfig.Password, smtpConfig.Host)
 
 	err := smtp.SendMail(smtpConfig.Host+":"+smtpConfig.Port, auth, from, []string{to}, msg)
