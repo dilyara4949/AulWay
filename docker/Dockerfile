@@ -1,4 +1,4 @@
-FROM golang:1.22
+FROM golang:1.23
 
 RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.15.0/migrate.linux-amd64.tar.gz \
   | tar -xz && mv migrate /usr/local/bin/migrate
@@ -11,6 +11,6 @@ RUN go mod download && go mod verify
 
 COPY . .
 
-RUN go build -v -o /usr/local/bin/app ./cmd/...
+RUN go build -v -o /usr/local/bin/app ./main.go
 
 CMD ["app"]
