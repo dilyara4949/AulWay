@@ -86,14 +86,17 @@ func (repo *Repository) GetRoutesList(ctx context.Context, userID, departure, de
 		LEFT JOIN favorite_routes f ON r.id = f.route_id AND f.user_id = ?
 		WHERE r.departure = ? 
 		  AND r.destination = ? 
-		  AND r.start_date >= ? 
+		  AND r.start_date >= ? AND r.start_date < ?
 		  AND r.available_seats >= ?
 		ORDER BY r.start_date ASC
 		LIMIT ? OFFSET ?
 	`
 
+	startOfDay := date.Truncate(24 * time.Hour)
+	endOfDay := startOfDay.Add(24 * time.Hour)
+
 	rows, err := repo.db.WithContext(ctx).Raw(query,
-		userID, departure, destination, date, passengers, pageSize, offset).Rows()
+		userID, departure, destination, startOfDay, endOfDay, passengers, pageSize, offset).Rows()
 	if err != nil {
 		return nil, 0, err
 	}
