@@ -61,7 +61,7 @@ func BuyTicketHandler(s Service, cfg config.Config) echo.HandlerFunc {
 
 		go func() {
 			emailBody := buildTicketEmailBody(tickets, bus, route)
-			err := service.SendEmail(req.UserEmail, "Your Bus Ticket(s)", emailBody, cfg.SMTP)
+			err := service.SendEmailWithQR(req.UserEmail, "Your Bus Ticket(s)", tickets, cfg.SMTP, emailBody)
 			if err != nil {
 				slog.Error("failed to send ticket email", slog.String("user_id", userID), slog.String("error", err.Error()))
 			}
@@ -77,7 +77,6 @@ func buildTicketEmailBody(tickets []domain.Ticket, bus *domain.Bus, route *domai
 	}
 
 	orderNumber := tickets[0].OrderNumber
-
 	loc := time.FixedZone("Almaty", 5*60*60)
 	departureDate := route.StartDate.In(loc).Format("02 Jan 2006")
 	departureTime := route.StartDate.In(loc).Format("15:04")
@@ -117,13 +116,13 @@ func buildTicketEmailBody(tickets []domain.Ticket, bus *domain.Bus, route *domai
 		body += fmt.Sprintf("<td>%d₸</td>", t.Price)
 
 		if t.QRCode != "" {
-			body += fmt.Sprintf(`<td><img src="data:image/png;base64,%s" alt="QR-код" style="max-width:120px;"/></td>`, t.QRCode)
+			cid := fmt.Sprintf("qr%d.png", i+1)
+			body += fmt.Sprintf(`<td><img src="cid:%s" alt="QR-код" style="max-width:120px;"/></td>`, cid)
 		} else {
 			body += "<td>Нет</td>"
 		}
 
 		body += "</tr>"
-
 		totalPrice += t.Price
 	}
 
@@ -133,7 +132,6 @@ func buildTicketEmailBody(tickets []domain.Ticket, bus *domain.Bus, route *domai
 		len(tickets), totalPrice)
 
 	body += `<p style="margin-top:30px;">Спасибо за покупку!<br>Хорошей поездки с AulWay 😊</p>`
-
 	body += `</body></html>`
 
 	return body
