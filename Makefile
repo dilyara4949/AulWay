@@ -15,3 +15,6 @@ initswag:
 
 net:
 	docker network create my_network docker run --name postgre --network my_network -e POSTGRES_PASSWORD=12345 -p 5435:5435 -d postgres
+
+compose:
+	docker-compose -f docker/docker-compose.yml up  -d

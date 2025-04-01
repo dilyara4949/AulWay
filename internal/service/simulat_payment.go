@@ -20,5 +20,5 @@ func (p *fakePaymentProcessor) ProcessPayment(ctx context.Context, userID string
 		return true, nil
 	}
 
-	return false, errors.New("simulated payment failure")
+	return false, errors.New("payment failure")
 }

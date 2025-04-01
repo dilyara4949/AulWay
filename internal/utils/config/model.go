@@ -1,6 +1,9 @@
 package config
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
 
 type Postgres struct {
 	Host           string
@@ -38,4 +41,12 @@ type SMTP struct {
 	Port     string
 	Username string
 	Password string
+}
+
+func (s SMTP) PortAsInt() int {
+	p, err := strconv.Atoi(s.Port)
+	if err != nil {
+		return 8080
+	}
+	return p
 }
