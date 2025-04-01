@@ -138,7 +138,7 @@ func GetUserByIdHandler(service Service) echo.HandlerFunc {
 // @Produce json
 // @Security BearerAuth
 // @Param page query int false "Page number" default(1) minimum(1)
-// @Param page_size query int false "Number of users per page" default(10) minimum(1) maximum(100)
+// @Param pageSize query int false "Number of users per page" default(10) minimum(1) maximum(100)
 // @Success 200 {array} domain.User "List of users"
 // @Failure 500 {object} errs.Err "Failed to retrieve users"
 // @Router /api/users [get]
