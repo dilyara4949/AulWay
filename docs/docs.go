@@ -964,7 +964,7 @@ const docTemplate = `{
                         "type": "integer",
                         "default": 10,
                         "description": "Number of users per page",
-                        "name": "page_size",
+                        "name": "pageSize",
                         "in": "query"
                     }
                 ],
