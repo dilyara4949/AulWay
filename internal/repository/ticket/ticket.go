@@ -54,6 +54,19 @@ func (repo *Repository) Update(ctx context.Context, tx *gorm.DB, updates map[str
 	return nil
 }
 
+func (repo *Repository) Cancel(ctx context.Context, ticket *domain.Ticket) error {
+	err := repo.db.WithContext(ctx).
+		Model(&domain.Ticket{}).
+		Where("id = ?", ticket.ID).
+		Updates(ticket).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to update ticket %s: %w", ticket.ID, err)
+	}
+
+	return nil
+}
+
 func (repo *Repository) Delete(ctx context.Context, id string) error {
 	if err := repo.db.WithContext(ctx).Where("id = ?", id).Delete(&domain.Route{}).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

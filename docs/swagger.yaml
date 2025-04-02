@@ -85,7 +85,7 @@ definitions:
       order_number:
         type: string
       payment_status:
-        description: '"pending", "paid", "failed"'
+        description: '"pending", "paid", "failed", "refunded"'
         type: string
       price:
         type: integer
@@ -902,6 +902,48 @@ paths:
       security:
       - BearerAuth: []
       summary: Get user ticket's detail
+      tags:
+      - tickets
+  /api/tickets/users/{userId}/{ticketId}/cancel:
+    put:
+      consumes:
+      - application/json
+      description: Cancels a ticket by ID if it belongs to the user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Ticket ID
+        in: path
+        name: ticketId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cancellation successful
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "403":
+          description: Access denied
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      security:
+      - BearerAuth: []
+      summary: Cancel ticket
       tags:
       - tickets
   /api/users:

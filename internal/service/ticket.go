@@ -199,3 +199,59 @@ func (s *TicketService) GetTicketsSortBy(
 func generateOrderNumber() string {
 	return fmt.Sprintf("ORD-%d-%04d", time.Now().Unix(), rand.Intn(10000))
 }
+
+func (s *TicketService) CancelTicket(ctx context.Context, userID, ticketID string) error {
+	ticket, err := s.TicketRepo.Get(ctx, ticketID)
+	if err != nil {
+		return fmt.Errorf("ticket not found: %w", err)
+	}
+
+	if ticket.UserID != userID {
+		return fmt.Errorf("unauthorized cancel attempt")
+	}
+	if ticket.Status == "cancelled" {
+		return nil // already cancelled
+	}
+
+	tx := s.TicketRepo.BeginTransaction()
+
+	if ticket.PaymentStatus == "paid" {
+		payment, err := s.PaymentRepo.GetByTicketID(ctx, ticket.ID)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("failed to get payment: %w", err)
+		}
+
+		refundSuccess, refundErr := s.PaymentProcessor.Refund(ctx, payment.TransactionID, payment.Amount)
+		if refundErr != nil || !refundSuccess {
+			tx.Rollback()
+			return fmt.Errorf("refund failed: %w", refundErr)
+		}
+
+		err = s.PaymentRepo.Update(ctx, tx, map[string]interface{}{
+			"status": "refunded",
+		}, payment.ID)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("failed to update payment status: %w", err)
+		}
+	}
+
+	err = s.TicketRepo.Update(ctx, tx, map[string]interface{}{
+		"status":         "cancelled",
+		"payment_status": "refunded",
+	}, ticket.ID)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to cancel ticket: %w", err)
+	}
+
+	err = s.RouteRepo.IncrementSeats(ctx, tx, ticket.RouteID, 1)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to update seat count: %w", err)
+	}
+
+	tx.Commit()
+	return nil
+}

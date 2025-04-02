@@ -3,6 +3,9 @@ DB_URL=postgres://postgres:12345@localhost:5432/aulway?sslmode=disable
 migrate-up:
 	migrate -database $(DB_URL) -path internal/database/postgres/migration up
 
+migrate-one-down:
+	migrate -database $(DB_URL) -path internal/database/postgres/migration down 1
+
 migrate-down:
 	migrate -database $(DB_URL) -path internal/database/postgres/migration down
 
