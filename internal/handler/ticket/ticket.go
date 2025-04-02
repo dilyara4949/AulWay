@@ -27,6 +27,7 @@ type Service interface {
 	GetPastTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error)
 	TicketDetails(ctx context.Context, ticketId string) (*domain.Ticket, error)
 	GetTicketsSortBy(ctx context.Context, sortBy, ord string, page, pageSize int) ([]domain.Ticket, error)
+	CancelTicket(ctx context.Context, userID, ticketID string) error
 }
 
 // BuyTicketHandler processes ticket purchase requests for multiple tickets.
@@ -239,5 +240,37 @@ func GetTicketsSortByHandler(service Service) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, tickets)
+	}
+}
+
+// CancelTicketHandler allows the user to cancel their ticket
+// @Summary Cancel ticket
+// @Description Cancels a ticket by ID if it belongs to the user
+// @Tags tickets
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param userId path string true "User ID"
+// @Param ticketId path string true "Ticket ID"
+// @Success 200 {object} map[string]string "Cancellation successful"
+// @Failure 400 {object} errs.Err
+// @Failure 403 {object} errs.Err "Access denied"
+// @Failure 500 {object} errs.Err
+// @Router /api/tickets/users/{userId}/{ticketId}/cancel [put]
+func CancelTicketHandler(service Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if !access.Check(c, c.Get("user_id"), "userId") {
+			return c.JSON(http.StatusForbidden, errs.Err{Err: "cancel failed", ErrDesc: "access denied"})
+		}
+
+		userID := c.Param("userId")
+		ticketID := c.Param("ticketId")
+
+		err := service.CancelTicket(c.Request().Context(), userID, ticketID)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "cancel error", ErrDesc: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"message": "Ticket successfully cancelled"})
 	}
 }

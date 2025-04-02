@@ -132,3 +132,16 @@ func (repo *Repository) GetAllRoutesList(ctx context.Context, page, pageSize int
 
 	return routes, nil
 }
+
+func (repo *Repository) IncrementSeats(ctx context.Context, tx *gorm.DB, routeID string, count int) error {
+	err := tx.WithContext(ctx).
+		Model(&domain.Route{}).
+		Where("id = ?", routeID).
+		UpdateColumn("available_seats", gorm.Expr("available_seats + ?", count)).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to increment available seats: %w", err)
+	}
+
+	return nil
+}

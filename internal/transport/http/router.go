@@ -127,6 +127,7 @@ func (r *Router) Build() *echo.Echo {
 	publicProtected.POST("/tickets/:routeId", ticket.BuyTicketHandler(ticketService, r.c))
 	publicProtected.GET("/tickets/users/:userId", ticket.GetUserTicketsHandler(ticketService))
 	publicProtected.GET("/tickets/users/:userId/:ticketId", ticket.GetTicketDetailsHandler(ticketService))
+	publicProtected.PUT("/tickets/users/:userId/:ticketId/cancel", ticket.CancelTicketHandler(ticketService))
 	adminProtected.GET("/tickets", ticket.GetTicketsSortByHandler(ticketService))
 
 	adminProtected.PUT("/pages/:title", page.UpdatePageHandler(pageService))
