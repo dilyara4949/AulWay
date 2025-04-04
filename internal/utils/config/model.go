@@ -21,6 +21,7 @@ type Config struct {
 	JWTTokenSecret    string
 	AccessTokenExpire int
 	HeaderTimeout     time.Duration
+	StripeKey         string
 	Postgres
 	Redis
 	SMTP

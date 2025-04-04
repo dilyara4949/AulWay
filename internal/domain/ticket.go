@@ -10,6 +10,7 @@ type Ticket struct {
 	Status        string    `json:"status"`         // "approved", "cancelled", "awaiting"
 	PaymentStatus string    `json:"payment_status"` // "pending", "paid", "failed", "refunded"
 	OrderNumber   string    `json:"order_number"`
+	PaymentID     string    `json:"payment_id" gorm:"column:payment_id"`
 	QRCode        string    `json:"qr_code"`
 	CreatedAt     time.Time `json:"created_at"`
 }

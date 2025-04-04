@@ -41,7 +41,7 @@ type TicketService struct {
 //4242 4242 4242 4242 (Visa) – Succeeds
 //4000 0000 0000 9995 (Declined)
 
-func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, paymentMethodID string, quantity int) ([]domain.Ticket, *domain.Bus, *domain.Route, error) {
+func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, paymentMethodID string, quantity int, stripeKey string) ([]domain.Ticket, *domain.Bus, *domain.Route, error) {
 	if quantity <= 0 {
 		return nil, nil, nil, errors.New("quantity must be positive")
 	}
@@ -51,6 +51,7 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 		if r := recover(); r != nil {
 			tx.Rollback()
 		}
+		tx.Commit()
 	}()
 
 	route, err := s.RouteRepo.Get(ctx, routeID)
@@ -63,6 +64,35 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 		return nil, nil, nil, errs.ErrNoSeatsAvailable
 	}
 
+	totalAmount := route.Price * quantity
+
+	success, transactionId, paymentErr := s.PaymentProcessor.ProcessPayment(ctx, userID, totalAmount, paymentMethodID, stripeKey)
+	if paymentErr != nil {
+		tx.Rollback()
+		return nil, nil, nil, fmt.Errorf("payment failed: %w", paymentErr)
+	}
+	if !success {
+		tx.Rollback()
+		return nil, nil, nil, fmt.Errorf("payment was not successful")
+	}
+
+	paymentId, _ := uuid.NewV7()
+	payment := &domain.Payment{
+		ID:            paymentId.String(),
+		UserID:        userID,
+		Amount:        totalAmount,
+		Status:        "successful",
+		TransactionID: transactionId,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	err = s.PaymentRepo.Create(ctx, tx, payment)
+	if err != nil {
+		tx.Rollback()
+		return nil, nil, nil, fmt.Errorf("failed to create payment: %w", err)
+	}
+
 	var tickets []domain.Ticket
 
 	for i := 0; i < quantity; i++ {
@@ -72,12 +102,13 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 			UserID:        userID,
 			RouteID:       routeID,
 			Price:         route.Price,
-			Status:        "awaiting",
-			PaymentStatus: "pending",
+			Status:        "approved",
+			PaymentStatus: "paid",
 			CreatedAt:     time.Now(),
 		}
 
 		ticket.OrderNumber = generateOrderNumber()
+		ticket.PaymentID = payment.ID
 
 		qrCodePath, err := generateQRCode(&ticket)
 		if err != nil {
@@ -91,47 +122,6 @@ func (s *TicketService) BuyTickets(ctx context.Context, userID, routeID, payment
 			tx.Rollback()
 			return nil, nil, nil, fmt.Errorf("failed to create ticket: %w", err)
 		}
-
-		transactionId, _ := uuid.NewV7()
-		success, stripeErr := s.PaymentProcessor.ProcessPayment(ctx, userID, ticket.Price, paymentMethodID)
-		if stripeErr != nil {
-			tx.Rollback()
-			return nil, nil, nil, fmt.Errorf("payment failed: %w", stripeErr)
-		}
-		if !success {
-			tx.Rollback()
-			return nil, nil, nil, fmt.Errorf("payment was not successful")
-		}
-
-		paymentId, _ := uuid.NewV7()
-		payment := &domain.Payment{
-			ID:            paymentId.String(),
-			UserID:        userID,
-			TicketID:      ticket.ID,
-			Amount:        ticket.Price,
-			Status:        "successful",
-			TransactionID: transactionId.String(),
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		}
-
-		err = s.PaymentRepo.Create(ctx, tx, payment)
-		if err != nil {
-			tx.Rollback()
-			return nil, nil, nil, fmt.Errorf("failed to create payment: %w", err)
-		}
-
-		err = s.TicketRepo.Update(ctx, tx, map[string]interface{}{
-			"status":         "approved",
-			"payment_status": "paid",
-		}, ticket.ID)
-		if err != nil {
-			tx.Rollback()
-			return nil, nil, nil, fmt.Errorf("failed to update ticket: %w", err)
-		}
-
-		ticket.Status = "approved"
-		ticket.PaymentStatus = "paid"
 
 		tickets = append(tickets, ticket)
 	}
@@ -200,7 +190,7 @@ func generateOrderNumber() string {
 	return fmt.Sprintf("ORD-%d-%04d", time.Now().Unix(), rand.Intn(10000))
 }
 
-func (s *TicketService) CancelTicket(ctx context.Context, userID, ticketID string) error {
+func (s *TicketService) CancelTicket(ctx context.Context, userID, ticketID, stripeKey string) error {
 	ticket, err := s.TicketRepo.Get(ctx, ticketID)
 	if err != nil {
 		return fmt.Errorf("ticket not found: %w", err)
@@ -210,31 +200,40 @@ func (s *TicketService) CancelTicket(ctx context.Context, userID, ticketID strin
 		return fmt.Errorf("unauthorized cancel attempt")
 	}
 	if ticket.Status == "cancelled" {
-		return nil // already cancelled
+		return nil
+	}
+
+	route, err := s.RouteRepo.Get(ctx, ticket.RouteID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch route: %w", err)
+	}
+
+	if time.Until(route.StartDate) < 24*time.Hour {
+		return fmt.Errorf("cancellation not allowed less than 24 hours before departure")
 	}
 
 	tx := s.TicketRepo.BeginTransaction()
 
 	if ticket.PaymentStatus == "paid" {
-		payment, err := s.PaymentRepo.GetByTicketID(ctx, ticket.ID)
+		payment, err := s.PaymentRepo.GetByID(ctx, ticket.PaymentID)
 		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("failed to get payment: %w", err)
 		}
 
-		refundSuccess, refundErr := s.PaymentProcessor.Refund(ctx, payment.TransactionID, payment.Amount)
+		refundSuccess, refundErr := s.PaymentProcessor.Refund(ctx, payment.TransactionID, stripeKey, ticket.Price)
 		if refundErr != nil || !refundSuccess {
 			tx.Rollback()
 			return fmt.Errorf("refund failed: %w", refundErr)
 		}
 
-		err = s.PaymentRepo.Update(ctx, tx, map[string]interface{}{
-			"status": "refunded",
-		}, payment.ID)
-		if err != nil {
-			tx.Rollback()
-			return fmt.Errorf("failed to update payment status: %w", err)
-		}
+		//err = s.PaymentRepo.Update(ctx, tx, map[string]interface{}{
+		//	"status": "refunded",
+		//}, payment.ID)
+		//if err != nil {
+		//	tx.Rollback()
+		//	return fmt.Errorf("failed to update payment status: %w", err)
+		//}
 	}
 
 	err = s.TicketRepo.Update(ctx, tx, map[string]interface{}{
