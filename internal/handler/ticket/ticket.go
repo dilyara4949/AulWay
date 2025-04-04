@@ -22,12 +22,12 @@ const (
 )
 
 type Service interface {
-	BuyTickets(ctx context.Context, userID, routeID string, paymentMethodID string, ticketAmount int) ([]domain.Ticket, *domain.Bus, *domain.Route, error)
+	BuyTickets(ctx context.Context, userID, routeID string, paymentMethodID string, ticketAmount int, stripeKey string) ([]domain.Ticket, *domain.Bus, *domain.Route, error)
 	GetUpcomingTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error)
 	GetPastTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error)
 	TicketDetails(ctx context.Context, ticketId string) (*domain.Ticket, error)
 	GetTicketsSortBy(ctx context.Context, sortBy, ord string, page, pageSize int) ([]domain.Ticket, error)
-	CancelTicket(ctx context.Context, userID, ticketID string) error
+	CancelTicket(ctx context.Context, userID, ticketID, stripeKey string) error
 }
 
 // BuyTicketHandler processes ticket purchase requests for multiple tickets.
@@ -37,7 +37,7 @@ type Service interface {
 // @Accept       json
 // @Produce      json
 // @Param        routeId  path      string                     true  "Route ID"
-// @Param        payment_id query  string                      true  "Payment method ID"
+// @Param        payment_id query  string                      true  "Payment method ID - pm_card_visa"
 // @Param        requestBody body   model.BuyTicketRequest     true  "Buy Ticket Request Body"
 // @Security     BearerAuth
 // @Success      200      {array}   domain.Ticket             "Successfully purchased tickets"
@@ -55,7 +55,7 @@ func BuyTicketHandler(s Service, cfg config.Config) echo.HandlerFunc {
 		routeId := c.Param("routeId")
 		userID := c.Get("user_id").(string)
 
-		tickets, bus, route, err := s.BuyTickets(c.Request().Context(), userID, routeId, paymentId, req.Quantity)
+		tickets, bus, route, err := s.BuyTickets(c.Request().Context(), userID, routeId, paymentId, req.Quantity, cfg.StripeKey)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "error", ErrDesc: err.Error()})
 		}
@@ -257,7 +257,7 @@ func GetTicketsSortByHandler(service Service) echo.HandlerFunc {
 // @Failure 403 {object} errs.Err "Access denied"
 // @Failure 500 {object} errs.Err
 // @Router /api/tickets/users/{userId}/{ticketId}/cancel [put]
-func CancelTicketHandler(service Service) echo.HandlerFunc {
+func CancelTicketHandler(cfg config.Config, service Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if !access.Check(c, c.Get("user_id"), "userId") {
 			return c.JSON(http.StatusForbidden, errs.Err{Err: "cancel failed", ErrDesc: "access denied"})
@@ -266,7 +266,7 @@ func CancelTicketHandler(service Service) echo.HandlerFunc {
 		userID := c.Param("userId")
 		ticketID := c.Param("ticketId")
 
-		err := service.CancelTicket(c.Request().Context(), userID, ticketID)
+		err := service.CancelTicket(c.Request().Context(), userID, ticketID, cfg.StripeKey)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "cancel error", ErrDesc: err.Error()})
 		}
