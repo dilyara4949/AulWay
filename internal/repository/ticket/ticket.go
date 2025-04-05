@@ -132,3 +132,25 @@ func (repo *Repository) GetTicketsSortBy(
 
 	return tickets, err
 }
+
+func (repo *Repository) GetCancelledTickets(ctx context.Context, userID string) ([]domain.Ticket, error) {
+	var tickets []domain.Ticket
+	err := repo.db.WithContext(ctx).
+		Where("user_id = ? AND status = ?", userID, "cancelled").
+		Find(&tickets).Error
+	return tickets, err
+}
+
+func (repo *Repository) GetAdminCancelledTickets(ctx context.Context, page, pageSize int) ([]domain.Ticket, error) {
+	var tickets []domain.Ticket
+	offset := (page - 1) * pageSize
+
+	err := repo.db.WithContext(ctx).
+		Where("status = ?", "cancelled").
+		Order("created_at DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&tickets).Error
+
+	return tickets, err
+}

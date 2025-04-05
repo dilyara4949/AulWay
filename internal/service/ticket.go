@@ -190,26 +190,26 @@ func generateOrderNumber() string {
 	return fmt.Sprintf("ORD-%d-%04d", time.Now().Unix(), rand.Intn(10000))
 }
 
-func (s *TicketService) CancelTicket(ctx context.Context, userID, ticketID, stripeKey string) error {
+func (s *TicketService) CancelTicket(ctx context.Context, userID, ticketID, stripeKey string) (*domain.Ticket, string, error) {
 	ticket, err := s.TicketRepo.Get(ctx, ticketID)
 	if err != nil {
-		return fmt.Errorf("ticket not found: %w", err)
+		return nil, "", fmt.Errorf("ticket not found: %w", err)
 	}
 
 	if ticket.UserID != userID {
-		return fmt.Errorf("unauthorized cancel attempt")
+		return nil, "", fmt.Errorf("unauthorized cancel attempt")
 	}
 	if ticket.Status == "cancelled" {
-		return nil
+		return nil, "", errors.New("ticket already cancelled")
 	}
 
 	route, err := s.RouteRepo.Get(ctx, ticket.RouteID)
 	if err != nil {
-		return fmt.Errorf("failed to fetch route: %w", err)
+		return nil, "", fmt.Errorf("failed to fetch route: %w", err)
 	}
 
 	if time.Until(route.StartDate) < 24*time.Hour {
-		return fmt.Errorf("cancellation not allowed less than 24 hours before departure")
+		return nil, "", fmt.Errorf("cancellation not allowed less than 24 hours before departure")
 	}
 
 	tx := s.TicketRepo.BeginTransaction()
@@ -218,13 +218,13 @@ func (s *TicketService) CancelTicket(ctx context.Context, userID, ticketID, stri
 		payment, err := s.PaymentRepo.GetByID(ctx, ticket.PaymentID)
 		if err != nil {
 			tx.Rollback()
-			return fmt.Errorf("failed to get payment: %w", err)
+			return nil, "", fmt.Errorf("failed to get payment: %w", err)
 		}
 
 		refundSuccess, refundErr := s.PaymentProcessor.Refund(ctx, payment.TransactionID, stripeKey, ticket.Price)
 		if refundErr != nil || !refundSuccess {
 			tx.Rollback()
-			return fmt.Errorf("refund failed: %w", refundErr)
+			return nil, "", fmt.Errorf("refund failed: %w", refundErr)
 		}
 
 		//err = s.PaymentRepo.Update(ctx, tx, map[string]interface{}{
@@ -242,15 +242,35 @@ func (s *TicketService) CancelTicket(ctx context.Context, userID, ticketID, stri
 	}, ticket.ID)
 	if err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to cancel ticket: %w", err)
+		return nil, "", fmt.Errorf("failed to cancel ticket: %w", err)
 	}
 
 	err = s.RouteRepo.IncrementSeats(ctx, tx, ticket.RouteID, 1)
 	if err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to update seat count: %w", err)
+		return nil, "", fmt.Errorf("failed to update seat count: %w", err)
 	}
 
+	msg := buildCancellationEmail(ticket, route)
+
 	tx.Commit()
-	return nil
+	return ticket, msg, nil
+}
+
+func buildCancellationEmail(ticket *domain.Ticket, route *domain.Route) string {
+	return fmt.Sprintf(`<html><body style="font-family: Arial, sans-serif;">
+		<h2 style="color:#dc3545;">Ваш билет был отменён</h2>
+		<p>Номер билета: <strong>%s</strong></p>
+		<p>Маршрут: <strong>%s → %s</strong></p>
+		<p>Статус: <strong>Отменён</strong></p>
+		<p>Спасибо, что пользуетесь AulWay</p>
+	</body></html>`, ticket.OrderNumber, route.Departure, route.Destination)
+}
+
+func (s *TicketService) GetCancelledTickets(ctx context.Context, userID string) ([]domain.Ticket, error) {
+	return s.TicketRepo.GetCancelledTickets(ctx, userID)
+}
+
+func (s *TicketService) GetAdminCancelledTickets(ctx context.Context, page, pageSize int) ([]domain.Ticket, error) {
+	return s.TicketRepo.GetAdminCancelledTickets(ctx, page, pageSize)
 }
