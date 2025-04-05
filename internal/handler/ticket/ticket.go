@@ -27,7 +27,9 @@ type Service interface {
 	GetPastTickets(ctx context.Context, userID string, now time.Time) ([]domain.Ticket, error)
 	TicketDetails(ctx context.Context, ticketId string) (*domain.Ticket, error)
 	GetTicketsSortBy(ctx context.Context, sortBy, ord string, page, pageSize int) ([]domain.Ticket, error)
-	CancelTicket(ctx context.Context, userID, ticketID, stripeKey string) error
+	CancelTicket(ctx context.Context, userID, ticketID, stripeKey string) (*domain.Ticket, string, error)
+	GetCancelledTickets(ctx context.Context, userID string) ([]domain.Ticket, error)
+	GetAdminCancelledTickets(ctx context.Context, page, pageSize int) ([]domain.Ticket, error)
 }
 
 // BuyTicketHandler processes ticket purchase requests for multiple tickets.
@@ -252,12 +254,13 @@ func GetTicketsSortByHandler(service Service) echo.HandlerFunc {
 // @Security BearerAuth
 // @Param userId path string true "User ID"
 // @Param ticketId path string true "Ticket ID"
-// @Success 200 {object} map[string]string "Cancellation successful"
+// @Param email query string true "email for sending mail"
+// @Success 200 {object} string "Cancellation successful"
 // @Failure 400 {object} errs.Err
 // @Failure 403 {object} errs.Err "Access denied"
 // @Failure 500 {object} errs.Err
 // @Router /api/tickets/users/{userId}/{ticketId}/cancel [put]
-func CancelTicketHandler(cfg config.Config, service Service) echo.HandlerFunc {
+func CancelTicketHandler(cfg config.Config, s Service) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if !access.Check(c, c.Get("user_id"), "userId") {
 			return c.JSON(http.StatusForbidden, errs.Err{Err: "cancel failed", ErrDesc: "access denied"})
@@ -266,11 +269,71 @@ func CancelTicketHandler(cfg config.Config, service Service) echo.HandlerFunc {
 		userID := c.Param("userId")
 		ticketID := c.Param("ticketId")
 
-		err := service.CancelTicket(c.Request().Context(), userID, ticketID, cfg.StripeKey)
+		email := c.QueryParam("email")
+
+		_, msg, err := s.CancelTicket(c.Request().Context(), userID, ticketID, cfg.StripeKey)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "cancel error", ErrDesc: err.Error()})
 		}
 
+		go func() {
+			err := service.SendEmail(email, "Билет отменён", msg, cfg.SMTP)
+			if err != nil {
+				slog.Error("failed to send cancellation email", slog.String("user_id", userID), slog.String("error", err.Error()))
+			}
+		}()
+
 		return c.JSON(http.StatusOK, map[string]string{"message": "Ticket successfully cancelled"})
+	}
+}
+
+// GetCancelledTicketsHandler user's cancelled tickets
+// @Summary Get cancelled tickets
+// @Tags tickets
+// @Produce json
+// @Security BearerAuth
+// @Param userId path string true "User ID"
+// @Success 200 {array} domain.Ticket
+// @Failure 403 {object} errs.Err
+// @Failure 500 {object} errs.Err
+// @Router /api/tickets/users/{userId}/cancelled [get]
+func GetCancelledTicketsHandler(service Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if !access.Check(c, c.Get("user_id"), "userId") {
+			return c.JSON(http.StatusForbidden, errs.Err{Err: "access denied", ErrDesc: "You are not allowed to view these tickets"})
+		}
+
+		userID := c.Param("userId")
+
+		tickets, err := service.GetCancelledTickets(c.Request().Context(), userID)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "failed to fetch cancelled tickets", ErrDesc: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, tickets)
+	}
+}
+
+// GetAdminCancelledTicketsHandler cancelled tickets
+// @Summary Get cancelled tickets
+// @Tags tickets
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number (default: 1)" default(1)
+// @Param page_size query int false "Number of tickets per page (default: 30)" default(30)
+// @Success 200 {array} domain.Ticket
+// @Failure 403 {object} errs.Err
+// @Failure 500 {object} errs.Err
+// @Router /api/tickets/users/cancelled [get]
+func GetAdminCancelledTicketsHandler(service Service) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		page, pageSize := pagination.GetPageInfo(c)
+
+		tickets, err := service.GetAdminCancelledTickets(c.Request().Context(), page, pageSize)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, errs.Err{Err: "failed to fetch cancelled tickets", ErrDesc: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, tickets)
 	}
 }

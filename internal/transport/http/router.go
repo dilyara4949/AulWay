@@ -125,11 +125,13 @@ func (r *Router) Build() *echo.Echo {
 	adminProtected.DELETE("/routes/:routeId", route.DeleteRouteHandler(routeService, r.c))
 	publicProtected.GET("/routes", route.GetRoutesListHandler(routeService, r.c))
 
+	adminProtected.GET("/tickets", ticket.GetTicketsSortByHandler(ticketService))
 	publicProtected.POST("/tickets/:routeId", ticket.BuyTicketHandler(ticketService, r.c))
+	adminProtected.GET("/tickets/users/cancelled", ticket.GetAdminCancelledTicketsHandler(ticketService))
+	publicProtected.GET("/tickets/users/:userId/cancelled", ticket.GetCancelledTicketsHandler(ticketService))
 	publicProtected.GET("/tickets/users/:userId", ticket.GetUserTicketsHandler(ticketService))
 	publicProtected.GET("/tickets/users/:userId/:ticketId", ticket.GetTicketDetailsHandler(ticketService))
 	publicProtected.PUT("/tickets/users/:userId/:ticketId/cancel", ticket.CancelTicketHandler(r.c, ticketService))
-	adminProtected.GET("/tickets", ticket.GetTicketsSortByHandler(ticketService))
 
 	adminProtected.PUT("/pages/:title", page.UpdatePageHandler(pageService))
 	publicProtected.GET("/pages/:title", page.GetPageHandler(pageService))

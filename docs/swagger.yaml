@@ -84,6 +84,8 @@ definitions:
         type: string
       order_number:
         type: string
+      payment_id:
+        type: string
       payment_status:
         description: '"pending", "paid", "failed", "refunded"'
         type: string
@@ -793,7 +795,7 @@ paths:
         name: routeId
         required: true
         type: string
-      - description: Payment method ID
+      - description: Payment method ID - pm_card_visa
         in: query
         name: payment_id
         required: true
@@ -920,15 +922,18 @@ paths:
         name: ticketId
         required: true
         type: string
+      - description: email for sending mail
+        in: query
+        name: email
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: Cancellation successful
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            type: string
         "400":
           description: Bad Request
           schema:
@@ -944,6 +949,71 @@ paths:
       security:
       - BearerAuth: []
       summary: Cancel ticket
+      tags:
+      - tickets
+  /api/tickets/users/{userId}/cancelled:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Ticket'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      security:
+      - BearerAuth: []
+      summary: Get cancelled tickets
+      tags:
+      - tickets
+  /api/tickets/users/cancelled:
+    get:
+      parameters:
+      - default: 1
+        description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - default: 30
+        description: 'Number of tickets per page (default: 30)'
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Ticket'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errs.Err'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errs.Err'
+      security:
+      - BearerAuth: []
+      summary: Get cancelled tickets
       tags:
       - tickets
   /api/users:
